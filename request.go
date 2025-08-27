@@ -2,6 +2,8 @@ package parser
 
 import (
 	"bytes"
+	"encoding/json"
+	"encoding/xml"
 	"io"
 	"net/http"
 	"net/url"
@@ -112,12 +114,42 @@ func ExtractRequestData(r *RereadableRequest, customData interface{}) (*RequestD
 		}
 	}
 
+	// Parse JSON body if content type is JSON
+	var bodyJSON map[string]interface{}
+	contentType := strings.ToLower(r.Header.Get("Content-Type"))
+	if strings.Contains(contentType, "application/json") && len(r.body) > 0 {
+		if err := json.Unmarshal(r.body, &bodyJSON); err != nil {
+			// If JSON parsing fails, leave bodyJSON as nil but don't error
+			// This allows templates to still access the raw body
+			bodyJSON = nil
+		}
+	}
+
+	// Parse XML body if content type is XML
+	var bodyXML map[string]interface{}
+	if (strings.Contains(contentType, "text/xml") || 
+		strings.Contains(contentType, "application/xml") ||
+		strings.Contains(contentType, "application/soap+xml")) && len(r.body) > 0 {
+		
+		// For XML, we'll parse into a generic structure
+		// This is a simplified approach - for full SOAP support, more sophisticated parsing might be needed
+		var xmlDoc interface{}
+		if err := xml.Unmarshal(r.body, &xmlDoc); err == nil {
+			// Convert to map[string]interface{} if possible
+			if xmlMap, ok := xmlDoc.(map[string]interface{}); ok {
+				bodyXML = xmlMap
+			}
+		}
+	}
+
 	return &RequestData{
-		Request: r.Request,
-		Headers: headers,
-		Query:   query,
-		Form:    form,
-		Body:    r.Body(),
-		Custom:  customData,
+		Request:  r.Request,
+		Headers:  headers,
+		Query:    query,
+		Form:     form,
+		Body:     r.Body(),
+		BodyJSON: bodyJSON,
+		BodyXML:  bodyXML,
+		Custom:   customData,
 	}, nil
 }

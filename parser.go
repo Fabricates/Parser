@@ -75,6 +75,12 @@ type RequestData struct {
 	// Body contains the request body as string
 	Body string
 
+	// BodyJSON contains parsed JSON data when Content-Type is application/json
+	BodyJSON map[string]interface{}
+
+	// BodyXML contains parsed XML data when Content-Type is text/xml or application/xml
+	BodyXML map[string]interface{}
+
 	// Custom contains any additional custom data
 	Custom interface{}
 }
