@@ -3,7 +3,6 @@ package parser
 import (
 	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"io"
 	"net/http"
 	"net/url"
@@ -131,14 +130,12 @@ func ExtractRequestData(r *RereadableRequest, customData interface{}) (*RequestD
 		strings.Contains(contentType, "application/xml") ||
 		strings.Contains(contentType, "application/soap+xml")) && len(r.body) > 0 {
 		
-		// For XML, we'll parse into a generic structure
-		// This is a simplified approach - for full SOAP support, more sophisticated parsing might be needed
-		var xmlDoc interface{}
-		if err := xml.Unmarshal(r.body, &xmlDoc); err == nil {
-			// Convert to map[string]interface{} if possible
-			if xmlMap, ok := xmlDoc.(map[string]interface{}); ok {
-				bodyXML = xmlMap
-			}
+		// For XML, we'll create a simple structure indicating XML was detected
+		// Full XML parsing into map[string]interface{} is complex due to XML's nature
+		// (attributes, namespaces, etc.), so we provide basic info and rely on raw body access
+		bodyXML = map[string]interface{}{
+			"detected": true,
+			"rawXML":   string(r.body),
 		}
 	}
 
