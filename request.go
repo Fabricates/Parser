@@ -126,10 +126,19 @@ func ExtractRequestData(r *RereadableRequest, customData interface{}) (*RequestD
 
 	// Parse XML body if content type is XML
 	var bodyXML map[string]interface{}
-	if (strings.Contains(contentType, "text/xml") || 
-		strings.Contains(contentType, "application/xml") ||
-		strings.Contains(contentType, "application/soap+xml")) && len(r.body) > 0 {
-		
+	xmlContentTypes := []string{
+		"text/xml",
+		"application/xml",
+		"application/soap+xml",
+	}
+	isXML := false
+	for _, ct := range xmlContentTypes {
+		if strings.Contains(contentType, ct) {
+			isXML = true
+			break
+		}
+	}
+	if isXML && len(r.body) > 0 {
 		// For XML, we'll create a simple structure indicating XML was detected
 		// Full XML parsing into map[string]interface{} is complex due to XML's nature
 		// (attributes, namespaces, etc.), so we provide basic info and rely on raw body access
