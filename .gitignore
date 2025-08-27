@@ -24,9 +24,65 @@ profile.cov
 go.work
 go.work.sum
 
-# env file
+# Environment files
 .env
+.env.local
+.env.*.local
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# Example binaries
+examples/*/example
+examples/basic/example
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.iml
+*.ipr
+*.iws
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+build/
+dist/
+bin/
+
+# Test fixtures and temporary test data
+testdata/
+test-*.tmp
+
+# Backup files
+*.bak
+*.backup
+
+# Performance profiling
+*.prof
+cpu.prof
+mem.prof
+trace.out
+
+# Air live reload tool
+tmp/
+
+# Git merge artifacts
+*.orig
