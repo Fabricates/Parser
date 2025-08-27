@@ -40,7 +40,7 @@ func NewTemplateCache(maxSize int, funcMap template.FuncMap) *TemplateCache {
 func (c *TemplateCache) Get(name string, loader TemplateLoader) (*template.Template, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	// Check if template exists in cache
 	if cached, exists := c.templates[name]; exists {
 		// Check if template needs to be reloaded
@@ -50,17 +50,17 @@ func (c *TemplateCache) Get(name string, loader TemplateLoader) (*template.Templ
 			c.updateAccess(name, cached)
 			return cached.Template, nil
 		}
-		
+
 		if lastMod.After(cached.LastModified) {
 			// Template has been modified, reload it
 			return c.loadAndCache(name, loader)
 		}
-		
+
 		// Template is up to date, update access time and return
 		c.updateAccess(name, cached)
 		return cached.Template, nil
 	}
-	
+
 	// Template not in cache, load and cache it
 	return c.loadAndCache(name, loader)
 }
@@ -72,24 +72,24 @@ func (c *TemplateCache) loadAndCache(name string, loader TemplateLoader) (*templ
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get last modified time
 	lastMod, err := loader.LastModified(name)
 	if err != nil {
 		lastMod = time.Now()
 	}
-	
+
 	// Compile template
 	tmpl := template.New(name)
 	if c.funcMap != nil {
 		tmpl = tmpl.Funcs(c.funcMap)
 	}
-	
+
 	tmpl, err = tmpl.Parse(content)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create cached template
 	cached := &CachedTemplate{
 		Template:     tmpl,
@@ -97,10 +97,10 @@ func (c *TemplateCache) loadAndCache(name string, loader TemplateLoader) (*templ
 		AccessTime:   time.Now(),
 		AccessCount:  1,
 	}
-	
+
 	// Add to cache
 	c.addToCache(name, cached)
-	
+
 	return tmpl, nil
 }
 
@@ -111,12 +111,12 @@ func (c *TemplateCache) addToCache(name string, cached *CachedTemplate) {
 		c.removeFromLRU(name)
 		_ = existing
 	}
-	
+
 	// Add new entry
 	c.templates[name] = cached
 	element := c.lruList.PushFront(name)
 	c.lruIndex[name] = element
-	
+
 	// Evict least recently used items if cache is full
 	if c.maxSize > 0 && len(c.templates) > c.maxSize {
 		c.evictLRU()
@@ -127,7 +127,7 @@ func (c *TemplateCache) addToCache(name string, cached *CachedTemplate) {
 func (c *TemplateCache) updateAccess(name string, cached *CachedTemplate) {
 	cached.AccessTime = time.Now()
 	cached.AccessCount++
-	
+
 	// Move to front of LRU list
 	if element, exists := c.lruIndex[name]; exists {
 		c.lruList.MoveToFront(element)
@@ -147,7 +147,7 @@ func (c *TemplateCache) evictLRU() {
 	if c.lruList.Len() == 0 {
 		return
 	}
-	
+
 	// Get the least recently used item
 	back := c.lruList.Back()
 	if back != nil {
@@ -162,18 +162,35 @@ func (c *TemplateCache) evictLRU() {
 func (c *TemplateCache) Remove(name string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if _, exists := c.templates[name]; exists {
 		delete(c.templates, name)
 		c.removeFromLRU(name)
 	}
 }
 
+// Set directly sets a template in the cache with the given hash
+func (c *TemplateCache) Set(name string, tmpl *template.Template, hash string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Create cached template
+	cached := &CachedTemplate{
+		Template:     tmpl,
+		LastModified: time.Now(),
+		AccessTime:   time.Now(),
+		AccessCount:  1,
+	}
+
+	// Add to cache
+	c.addToCache(name, cached)
+}
+
 // Clear clears all templates from the cache
 func (c *TemplateCache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.templates = make(map[string]*CachedTemplate)
 	c.lruList = list.New()
 	c.lruIndex = make(map[string]*list.Element)
@@ -183,17 +200,17 @@ func (c *TemplateCache) Clear() {
 func (c *TemplateCache) Stats() CacheStats {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	stats := CacheStats{
 		Size:     len(c.templates),
 		MaxSize:  c.maxSize,
 		HitCount: 0,
 	}
-	
+
 	for _, cached := range c.templates {
 		stats.HitCount += cached.AccessCount
 	}
-	
+
 	return stats
 }
 

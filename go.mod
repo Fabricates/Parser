@@ -1,4 +1,4 @@
-module github.com/Fabricates/Parser
+module github.com/fabricates/parser
 
 go 1.24.6
 

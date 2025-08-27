@@ -20,7 +20,7 @@ func NewRereadableRequest(r *http.Request) (*RereadableRequest, error) {
 	// Read the entire body into memory
 	var body []byte
 	var err error
-	
+
 	if r.Body != nil {
 		body, err = io.ReadAll(r.Body)
 		if err != nil {
@@ -28,36 +28,16 @@ func NewRereadableRequest(r *http.Request) (*RereadableRequest, error) {
 		}
 		r.Body.Close()
 	}
-	
-	// Create a new request with the same properties
+
+	// Create wrapper that uses the original request but makes body re-readable
 	req := &RereadableRequest{
-		Request: &http.Request{
-			Method:           r.Method,
-			URL:              r.URL,
-			Proto:            r.Proto,
-			ProtoMajor:       r.ProtoMajor,
-			ProtoMinor:       r.ProtoMinor,
-			Header:           r.Header,
-			ContentLength:    r.ContentLength,
-			TransferEncoding: r.TransferEncoding,
-			Close:            r.Close,
-			Host:             r.Host,
-			Form:             r.Form,
-			PostForm:         r.PostForm,
-			MultipartForm:    r.MultipartForm,
-			Trailer:          r.Trailer,
-			RemoteAddr:       r.RemoteAddr,
-			RequestURI:       r.RequestURI,
-			TLS:              r.TLS,
-			Cancel:           r.Cancel,
-			Response:         r.Response,
-		},
-		body: body,
+		Request: r, // Use the original request, don't create a copy
+		body:    body,
 	}
-	
-	// Set the body reader
+
+	// Reset the original request's body to be re-readable
 	req.resetBody()
-	
+
 	return req, nil
 }
 
@@ -93,7 +73,7 @@ func ExtractRequestData(r *RereadableRequest, customData interface{}) (*RequestD
 	// Parse form data if not already parsed
 	if r.Request.Form == nil {
 		r.Reset() // Ensure body is readable
-		
+
 		// Parse form based on content type
 		contentType := r.Header.Get("Content-Type")
 		if strings.Contains(contentType, "application/x-www-form-urlencoded") {
@@ -106,7 +86,7 @@ func ExtractRequestData(r *RereadableRequest, customData interface{}) (*RequestD
 			}
 		}
 	}
-	
+
 	// Extract query parameters
 	query := make(map[string][]string)
 	if r.URL.RawQuery != "" {
@@ -117,13 +97,13 @@ func ExtractRequestData(r *RereadableRequest, customData interface{}) (*RequestD
 			}
 		}
 	}
-	
+
 	// Extract headers
 	headers := make(map[string][]string)
 	for k, v := range r.Header {
 		headers[k] = v
 	}
-	
+
 	// Extract form data
 	form := make(map[string][]string)
 	if r.Request.Form != nil {
@@ -131,7 +111,7 @@ func ExtractRequestData(r *RereadableRequest, customData interface{}) (*RequestD
 			form[k] = v
 		}
 	}
-	
+
 	return &RequestData{
 		Request: r.Request,
 		Headers: headers,

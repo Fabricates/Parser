@@ -16,7 +16,7 @@ A Go module that provides a high-performance parser based on text/template for H
 ## Installation
 
 ```bash
-go get github.com/Fabricates/Parser
+go get github.com/fabricates/parser
 ```
 
 ## Quick Start
@@ -30,11 +30,48 @@ import (
     "net/http"
     "strings"
     
-    "github.com/Fabricates/Parser"
+    "github.com/fabricates/parser"
 )
 
 func main() {
-    // Create a memory-based template loader
+    // Simple configuration (uses MemoryLoader by default)
+    config := parser.Config{
+        MaxCacheSize: 100,
+        FuncMap:      parser.DefaultFuncMap(),
+    }
+    
+    // Create parser
+    p, err := parser.NewParser(config)
+    if err != nil {
+        panic(err)
+    }
+    defer p.Close()
+    
+    // Add template dynamically
+    err = p.UpdateTemplate("greeting", "Hello {{.Request.Method}} from {{.Request.URL.Path}}!", "v1")
+    if err != nil {
+        panic(err)
+    }
+    
+    // Create HTTP request
+    req, _ := http.NewRequest("GET", "http://example.com/api/users", nil)
+    
+    // Parse template
+    var output bytes.Buffer
+    err = p.Parse("greeting", req, &output)
+    if err != nil {
+        panic(err)
+    }
+    
+    fmt.Print(output.String()) // Output: Hello GET from /api/users!
+}
+```
+
+### Alternative: Explicit MemoryLoader
+
+```go
+func main() {
+    // Create a memory-based template loader explicitly
     loader := parser.NewMemoryLoader()
     loader.AddTemplate("greeting", "Hello {{.Request.Method}} from {{.Request.URL.Path}}!")
     
@@ -76,9 +113,8 @@ The main interface provides methods for template parsing and management:
 ```go
 type Parser interface {
     Parse(templateName string, request *http.Request, output io.Writer) error
-    ParseWithData(templateName string, request *http.Request, data interface{}, output io.Writer) error
-    LoadTemplate(name string) error
-    ReloadTemplate(name string) error
+    ParseWith(templateName string, request *http.Request, data interface{}, output io.Writer) error
+    UpdateTemplate(name string, content string, hash string) error
     GetCacheStats() CacheStats
     Close() error
 }
@@ -129,8 +165,32 @@ type RequestData struct {
     Query   map[string][]string     // Query parameters
     Form    map[string][]string     // Form data (for POST requests)
     Body    string                  // Request body as string
-    Custom  interface{}             // Custom data passed to ParseWithData
+    Custom  interface{}             // Custom data passed to ParseWith
 }
+```
+
+### Dynamic Template Updates
+
+You can dynamically add or update templates at runtime using the `UpdateTemplate` method:
+
+```go
+// Add a new template
+templateContent := "Hello {{.Request.Method}} from {{.Request.URL.Path}}!"
+err := parser.UpdateTemplate("greeting", templateContent, "hash123")
+if err != nil {
+    log.Fatalf("Failed to update template: %v", err)
+}
+
+// Later, update the same template with new content
+newContent := "Updated: {{.Request.Method}} {{.Request.URL.Path}}"
+err = parser.UpdateTemplate("greeting", newContent, "hash456")
+if err != nil {
+    log.Fatalf("Failed to update template: %v", err)
+}
+
+// Use the updated template
+var output bytes.Buffer
+err = parser.Parse("greeting", request, &output)
 ```
 
 ## Template Examples
@@ -175,7 +235,7 @@ customData := map[string]interface{}{
     "role":    "admin",
 }
 
-err := parser.ParseWithData("template", request, customData, output)
+err := parser.ParseWith("template", request, customData, output)
 ```
 
 ```html
@@ -231,7 +291,7 @@ config := parser.Config{
 }
 
 // Get cache statistics
-stats := parser.GetCacheStats()
+stats := p.GetCacheStats()
 fmt.Printf("Cache: %d/%d, Hits: %d\n", stats.Size, stats.MaxSize, stats.HitCount)
 ```
 
@@ -289,11 +349,30 @@ See the `/examples` directory for complete usage examples:
 
 ```go
 type Config struct {
-    TemplateLoader TemplateLoader    // Required: how to load templates
+    TemplateLoader TemplateLoader    // How to load templates (defaults to MemoryLoader if nil)
     WatchFiles     bool              // Enable file watching (FileSystemLoader only)
     MaxCacheSize   int               // Template cache size (0 = unlimited)
     FuncMap        template.FuncMap  // Custom template functions
 }
+```
+
+### Default Behavior
+
+If no `TemplateLoader` is specified in the config, the parser will automatically use a `MemoryLoader` by default. This allows you to create a parser with minimal configuration:
+
+```go
+// Simple config with default MemoryLoader
+config := parser.Config{
+    MaxCacheSize: 100,
+}
+
+p, err := parser.NewParser(config)
+if err != nil {
+    panic(err)
+}
+
+// Add templates dynamically using UpdateTemplate
+err = p.UpdateTemplate("greeting", "Hello {{.Request.Method}}!", "hash123")
 ```
 
 ## Thread Safety
