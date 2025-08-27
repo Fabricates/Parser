@@ -13,14 +13,14 @@ import (
 type TemplateLoader interface {
 	// Load returns the template content by name
 	Load(name string) (content string, err error)
-	
+
 	// List returns all available template names
 	List() ([]string, error)
-	
+
 	// Watch starts watching for template changes and calls the callback
 	// when a template is modified. Returns a context cancel function.
 	Watch(ctx context.Context, callback func(name string)) error
-	
+
 	// LastModified returns the last modification time of a template
 	LastModified(name string) (time.Time, error)
 }
@@ -29,13 +29,13 @@ type TemplateLoader interface {
 type FileSystemLoader struct {
 	// RootDir is the root directory for templates
 	RootDir string
-	
+
 	// Extension is the file extension for templates (e.g., ".tmpl", ".tpl")
 	Extension string
-	
+
 	// Recursive enables recursive directory scanning
 	Recursive bool
-	
+
 	mu      sync.RWMutex
 	watcher FileWatcher
 }
@@ -53,17 +53,17 @@ func NewFileSystemLoader(rootDir, extension string, recursive bool) *FileSystemL
 func (f *FileSystemLoader) Load(name string) (string, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	path := filepath.Join(f.RootDir, name)
 	if f.Extension != "" && filepath.Ext(path) != f.Extension {
 		path += f.Extension
 	}
-	
+
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	
+
 	return string(content), nil
 }
 
@@ -71,38 +71,38 @@ func (f *FileSystemLoader) Load(name string) (string, error) {
 func (f *FileSystemLoader) List() ([]string, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	var templates []string
-	
+
 	walkFn := func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if d.IsDir() {
 			if !f.Recursive && path != f.RootDir {
 				return fs.SkipDir
 			}
 			return nil
 		}
-		
+
 		if f.Extension == "" || filepath.Ext(path) == f.Extension {
 			relPath, err := filepath.Rel(f.RootDir, path)
 			if err != nil {
 				return err
 			}
-			
+
 			// Remove extension for template name
 			if f.Extension != "" {
 				relPath = relPath[:len(relPath)-len(f.Extension)]
 			}
-			
+
 			templates = append(templates, relPath)
 		}
-		
+
 		return nil
 	}
-	
+
 	err := filepath.WalkDir(f.RootDir, walkFn)
 	return templates, err
 }
@@ -111,7 +111,7 @@ func (f *FileSystemLoader) List() ([]string, error) {
 func (f *FileSystemLoader) Watch(ctx context.Context, callback func(name string)) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	if f.watcher == nil {
 		var err error
 		f.watcher, err = NewFileWatcher()
@@ -119,7 +119,7 @@ func (f *FileSystemLoader) Watch(ctx context.Context, callback func(name string)
 			return err
 		}
 	}
-	
+
 	return f.watcher.Watch(ctx, f.RootDir, f.Extension, f.Recursive, callback)
 }
 
@@ -127,17 +127,17 @@ func (f *FileSystemLoader) Watch(ctx context.Context, callback func(name string)
 func (f *FileSystemLoader) LastModified(name string) (time.Time, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	path := filepath.Join(f.RootDir, name)
 	if f.Extension != "" && filepath.Ext(path) != f.Extension {
 		path += f.Extension
 	}
-	
+
 	info, err := os.Stat(path)
 	if err != nil {
 		return time.Time{}, err
 	}
-	
+
 	return info.ModTime(), nil
 }
 
@@ -165,12 +165,12 @@ func (m *MemoryLoader) AddTemplate(name, content string) {
 func (m *MemoryLoader) Load(name string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	content, exists := m.templates[name]
 	if !exists {
 		return "", ErrTemplateNotFound
 	}
-	
+
 	return content, nil
 }
 
@@ -178,12 +178,12 @@ func (m *MemoryLoader) Load(name string) (string, error) {
 func (m *MemoryLoader) List() ([]string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	names := make([]string, 0, len(m.templates))
 	for name := range m.templates {
 		names = append(names, name)
 	}
-	
+
 	return names, nil
 }
 
@@ -197,10 +197,10 @@ func (m *MemoryLoader) Watch(ctx context.Context, callback func(name string)) er
 func (m *MemoryLoader) LastModified(name string) (time.Time, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if _, exists := m.templates[name]; !exists {
 		return time.Time{}, ErrTemplateNotFound
 	}
-	
+
 	return time.Now(), nil
 }
