@@ -4,10 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 )
+
+var xmlContentTypes = []string{
+	"text/xml",
+	"application/xml",
+	"application/soap+xml",
+}
 
 // RereadableRequest wraps an HTTP request to make it re-readable
 type RereadableRequest struct {
@@ -115,36 +122,37 @@ func ExtractRequestData(r *RereadableRequest, customData interface{}) (*RequestD
 
 	// Parse JSON body if content type is JSON
 	var bodyJSON map[string]interface{}
+	var bodyXML map[string]interface{}
+
 	contentType := strings.ToLower(r.Header.Get("Content-Type"))
 	if strings.Contains(contentType, "application/json") && len(r.body) > 0 {
-		if err := json.Unmarshal(r.body, &bodyJSON); err != nil {
-			// If JSON parsing fails, leave bodyJSON as nil but don't error
-			// This allows templates to still access the raw body
+		var parsedJSON map[string]interface{}
+		if err := json.Unmarshal(r.body, &parsedJSON); err != nil {
+			// Log JSON parsing failure but continue processing
+			slog.Warn("Failed to parse JSON body", "error", err, "content_type", contentType)
+			// Create error structure similar to XML for consistency
 			bodyJSON = nil
+		} else {
+			// Wrap successful JSON parsing in standard structure for consistency
+			bodyJSON = parsedJSON
 		}
-	}
-
-	// Parse XML body if content type is XML
-	var bodyXML map[string]interface{}
-	xmlContentTypes := []string{
-		"text/xml",
-		"application/xml",
-		"application/soap+xml",
-	}
-	isXML := false
-	for _, ct := range xmlContentTypes {
-		if strings.Contains(contentType, ct) {
-			isXML = true
-			break
-		}
-	}
-	if isXML && len(r.body) > 0 {
-		// For XML, we'll create a simple structure indicating XML was detected
-		// Full XML parsing into map[string]interface{} is complex due to XML's nature
-		// (attributes, namespaces, etc.), so we provide basic info and rely on raw body access
-		bodyXML = map[string]interface{}{
-			"detected": true,
-			"rawXML":   string(r.body),
+	} else {
+		// Parse XML body if content type is XML
+		if len(r.body) > 0 {
+			for _, ct := range xmlContentTypes {
+				if strings.Contains(contentType, ct) {
+					// Parse XML into structured format
+					parsedXML, err := parseXMLToGeneric(string(r.body))
+					if err != nil {
+						// Log XML parsing failure but continue processing
+						slog.Warn("Failed to parse XML body", "error", err, "content_type", contentType)
+						bodyXML = nil
+					} else {
+						bodyXML = parsedXML
+					}
+					break
+				}
+			}
 		}
 	}
 
