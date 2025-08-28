@@ -258,6 +258,8 @@ func (p *templateParser) GetCacheStats() CacheStats {
 
 // Helper function to create default function map with useful template functions
 func DefaultFuncMap() template.FuncMap {
+	xmlHelper := XMLHelper{}
+
 	return template.FuncMap{
 		// String functions
 		"upper": func(s string) string {
@@ -294,5 +296,19 @@ func DefaultFuncMap() template.FuncMap {
 		"form": func(req *http.Request, name string) string {
 			return req.FormValue(name)
 		},
+
+		// XML helper functions
+		"xmlAttr":       xmlHelper.GetXMLAttribute,
+		"xmlAttrArray":  xmlHelper.GetXMLAttributeArray,
+		"xmlValue":      xmlHelper.GetXMLValue,
+		"xmlValueArray": xmlHelper.GetXMLValueArray,
+		"xmlText":       xmlHelper.GetXMLText,
+		"xmlTextArray":  xmlHelper.GetXMLTextArray,
+		"hasXMLAttr":    xmlHelper.HasXMLAttribute,
+		"hasXMLElement": xmlHelper.HasXMLElement,
+		"isXMLArray":    xmlHelper.IsXMLArray,
+		"xmlArrayLen":   xmlHelper.XMLArrayLength,
+		"xmlAttrs":      xmlHelper.ListXMLAttributes,
+		"xmlElements":   xmlHelper.ListXMLElements,
 	}
 }
