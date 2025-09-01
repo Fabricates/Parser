@@ -5,7 +5,7 @@ This document provides detailed performance benchmarks for the HTTP Template Par
 ## System Specifications
 
 - **CPU**: Intel(R) Xeon(R) CPU E5-2680 v2 @ 2.80GHz
-- **Go Version**: 1.24.6
+- **Go Version**: 1.22
 - **OS**: Linux
 - **Test Date**: December 2024
 
