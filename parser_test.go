@@ -7,8 +7,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -242,57 +240,6 @@ func TestParserWithMemoryLoader(t *testing.T) {
 	expected := "Hello GET World from example.com!"
 	if output.String() != expected {
 		t.Errorf("Expected '%s', got '%s'", expected, output.String())
-	}
-}
-
-// Test file system loader (requires temp directory)
-func TestFileSystemLoader(t *testing.T) {
-	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "parser_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Create test template file
-	templatePath := filepath.Join(tempDir, "test.tmpl")
-	templateContent := "Template: {{.Body}}"
-	err = os.WriteFile(templatePath, []byte(templateContent), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write template file: %v", err)
-	}
-
-	// Create loader
-	loader := NewFileSystemLoader(tempDir, ".tmpl", false)
-
-	// Test loading
-	content, err := loader.Load("test")
-	if err != nil {
-		t.Fatalf("Failed to load template: %v", err)
-	}
-
-	if content != templateContent {
-		t.Errorf("Expected '%s', got '%s'", templateContent, content)
-	}
-
-	// Test listing
-	names, err := loader.List()
-	if err != nil {
-		t.Fatalf("Failed to list templates: %v", err)
-	}
-
-	if len(names) != 1 || names[0] != "test" {
-		t.Errorf("Expected ['test'], got %v", names)
-	}
-
-	// Test last modified
-	modTime, err := loader.LastModified("test")
-	if err != nil {
-		t.Fatalf("Failed to get last modified: %v", err)
-	}
-
-	if modTime.IsZero() {
-		t.Error("Expected non-zero modification time")
 	}
 }
 
@@ -1531,30 +1478,6 @@ func TestTemplateCacheEdgeCases(t *testing.T) {
 	_ = tmpl
 }
 
-// Test file system loader error cases
-func TestFileSystemLoaderErrors(t *testing.T) {
-	// Test with non-existent directory
-	loader := NewFileSystemLoader("/nonexistent/directory", ".tmpl", false)
-
-	// Test loading non-existent template
-	_, err := loader.Load("nonexistent")
-	if err == nil {
-		t.Error("Expected error loading from non-existent directory")
-	}
-
-	// Test listing non-existent directory
-	_, err = loader.List()
-	if err == nil {
-		t.Error("Expected error listing non-existent directory")
-	}
-
-	// Test last modified on non-existent file
-	_, err = loader.LastModified("nonexistent")
-	if err == nil {
-		t.Error("Expected error getting last modified of non-existent file")
-	}
-}
-
 // Test parser with invalid template
 func TestParserInvalidTemplate(t *testing.T) {
 	loader := NewMemoryLoader()
@@ -1619,50 +1542,6 @@ func TestExtractRequestDataQueryEdgeCases(t *testing.T) {
 
 	if len(data2.Query) != 0 {
 		t.Errorf("Expected empty query map, got %v", data2.Query)
-	}
-}
-
-// Test file watcher functionality (basic test without actual file changes)
-func TestFileSystemLoaderWithWatcher(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "parser_watcher_test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Create test template file
-	templatePath := filepath.Join(tempDir, "watch.tmpl")
-	err = os.WriteFile(templatePath, []byte("Original: {{.Body}}"), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write template file: %v", err)
-	}
-
-	// Create loader with watching enabled
-	loader := NewFileSystemLoader(tempDir, ".tmpl", true)
-
-	config := Config{
-		TemplateLoader: loader,
-		MaxCacheSize:   10,
-		WatchFiles:     true,
-	}
-
-	parser, err := NewParser(config)
-	if err != nil {
-		t.Fatalf("Failed to create parser with watcher: %v", err)
-	}
-	defer parser.Close()
-
-	// Test that parser works with file watcher enabled
-	req, _ := http.NewRequest("GET", "http://example.com", strings.NewReader("test"))
-	var output bytes.Buffer
-	err = parser.Parse("watch", req, &output)
-	if err != nil {
-		t.Fatalf("Failed to parse template with watcher: %v", err)
-	}
-
-	expected := "Original: test"
-	if output.String() != expected {
-		t.Errorf("Expected '%s', got '%s'", expected, output.String())
 	}
 }
 

@@ -15,13 +15,12 @@ import (
 
 // templateParser implements the Parser interface
 type templateParser struct {
-	config  Config
-	cache   *TemplateCache
-	watcher FileWatcher
-	ctx     context.Context
-	cancel  context.CancelFunc
-	mu      sync.RWMutex
-	closed  bool
+	config Config
+	cache  *TemplateCache
+	ctx    context.Context
+	cancel context.CancelFunc
+	mu     sync.RWMutex
+	closed bool
 }
 
 // genericParser implements the GenericParser interface
@@ -226,11 +225,6 @@ func (p *templateParser) Close() error {
 
 	// Cancel file watching
 	p.cancel()
-
-	// Close file watcher if it exists
-	if p.watcher != nil {
-		p.watcher.Close()
-	}
 
 	// Clear cache
 	p.cache.Clear()
