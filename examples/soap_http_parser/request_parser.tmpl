@@ -1,0 +1,102 @@
+{{/*
+  Template that mimics the JavaScript request parser functionality
+  Handles both SOAP XML and HTTP JSON requests to extract metadata
+*/}}
+{{- $contentType := lower (header .Request "Content-Type") -}}
+{{- $isXML := or (eq $contentType "application/xml") (eq $contentType "text/xml") -}}
+{{- $isJSON := eq $contentType "application/json" -}}
+{{- if or (hasPrefix $contentType "application/xml") (hasPrefix $contentType "text/xml") -}}
+  {{- $isXML = true -}}
+{{- end -}}
+{{- if hasPrefix $contentType "application/json" -}}
+  {{- $isJSON = true -}}
+{{- end -}}
+
+{{- if $isXML -}}
+  {{/* Handle SOAP XML requests */}}
+  {{- if .BodyXML -}}
+    {{- $soapBody := index .BodyXML "Envelope/Body" -}}
+    
+    {{- if $soapBody -}}
+      {{/* Check for various SOAP request types */}}
+      {{- if index $soapBody "MESRecipeTurnOff" -}}
+        {"module": "*", "type": "MESRecipeTurnOff"}
+      {{- else if index $soapBody "Recommend_Request" -}}
+        {{- $routegroup := index .BodyXML "Envelope/Body/Recommend_Request/objRequest/CONTEXT_INFO/ROUTEGROUP" -}}
+        {{- $controller := index .BodyXML "Envelope/Body/Recommend_Request/objRequest/CONTEXT_INFO/CONTROLJOBTYPE" -}}
+        {{- $layer := index .BodyXML "Envelope/Body/Recommend_Request/objRequest/CONTEXT_INFO/LAYER" -}}
+        {"module": "PH", "type": "REC"{{if $routegroup}}, "routegroup": "{{$routegroup}}"{{end}}{{if $controller}}, "controller": "{{$controller}}"{{end}}{{if $layer}}, "layer": "{{$layer}}"{{end}}}
+      {{- else if index $soapBody "Metrology_Request" -}}
+        {{- $routegroup := index .BodyXML "Envelope/Body/Metrology_Request/objRequest/CONTEXT_INFO/ROUTEGROUP" -}}
+        {{- $controller := index .BodyXML "Envelope/Body/Metrology_Request/objRequest/CONTEXT_INFO/CONTROLJOBTYPE" -}}
+        {{- $layer := index .BodyXML "Envelope/Body/Metrology_Request/objRequest/CONTEXT_INFO/LAYER" -}}
+        {"module": "PH", "type": "MET"{{if $routegroup}}, "routegroup": "{{$routegroup}}"{{end}}{{if $controller}}, "controller": "{{$controller}}"{{end}}{{if $layer}}, "layer": "{{$layer}}"{{end}}}
+      {{- else if index $soapBody "Used_Request" -}}
+        {{- $routegroup := index .BodyXML "Envelope/Body/Used_Request/objRequest/CONTEXT_INFO/ROUTEGROUP" -}}
+        {{- $controller := index .BodyXML "Envelope/Body/Used_Request/objRequest/CONTEXT_INFO/CONTROLJOBTYPE" -}}
+        {{- $layer := index .BodyXML "Envelope/Body/Used_Request/objRequest/CONTEXT_INFO/LAYER" -}}
+        {"module": "PH", "type": "USED"{{if $routegroup}}, "routegroup": "{{$routegroup}}"{{end}}{{if $controller}}, "controller": "{{$controller}}"{{end}}{{if $layer}}, "layer": "{{$layer}}"{{end}}}
+      {{- else if index $soapBody "LotStartTime_For_Scanner" -}}
+        {"module": "PH", "type": "LotStartTime_For_Scanner"}
+      {{- else if index $soapBody "LotStartTime_For_YieldStarAndKLA" -}}
+        {"module": "PH", "type": "LotStartTime_For_YieldStarAndKLA"}
+      {{- else if index $soapBody "GetUsedExpParameters" -}}
+        {"module": "PH", "type": "GetUsedExpParameters"}
+      {{- else if index $soapBody "GetUsedLotInfoTest" -}}
+        {"module": "PH", "type": "GetUsedLotInfoTest"}
+      {{- else if index $soapBody "ResendToolOffsets" -}}
+        {"module": "PH", "type": "ResendToolOffsets"}
+      {{- else if index $soapBody "PackingLotEnd" -}}
+        {"module": "PH", "type": "PackingLotEnd"}
+      {{- else if index $soapBody "R2R_Object_Metrology" -}}
+        {"module": "non-PH", "type": "DISPATCHING"}
+      {{- else if index $soapBody "R2R_Object_Recommend" -}}
+        {"module": "non-PH", "type": "DISPATCHING"}
+      {{- else if index $soapBody "R2R_Object_Used" -}}
+        {"module": "non-PH", "type": "DISPATCHING"}
+      {{- else if index $soapBody "GetUsedLotInfo" -}}
+        {{- $resultXml := index .BodyXML "Envelope/Body/GetUsedLotInfo/result_xml" -}}
+        {{- $productId := index .BodyXML "Envelope/Body/GetUsedLotInfo/ProductID" -}}
+        {{- if $resultXml -}}
+          {"module": "PH", "type": "GetUsedLotInfo", "tool": "{{header .Request "x-eap-tool"}}", "productGroup": "{{header .Request "x-eap-product-group"}}", "operationNo": "{{header .Request "x-eap-operation-no"}}"}
+        {{- else if $productId -}}
+          {"module": "PH", "type": "EAPGetUsedLotInfo"}
+        {{- else -}}
+          {"module": "PH", "type": "GetUsedLotInfo"}
+        {{- end -}}
+      {{- else if index $soapBody "WLC_EAP_REQUEST" -}}
+        {"module": "PH", "type": "WLC_EAP_REQUEST"}
+      {{- else if index $soapBody "AMAT_Platen_Control" -}}
+        {"module": "CMP", "type": "AMAT_Platen_Control"}
+      {{- else if index $soapBody "HHQK_W2W_Control" -}}
+        {"module": "CMP", "type": "HHQK_W2W_Control"}
+      {{- else if index $soapBody "Post_R2R_DC" -}}
+        {"module": "CMP", "type": "Post_R2R_DC"}
+      {{- else if index $soapBody "Inline_Detection" -}}
+        {"module": "CMP", "type": "Inline_Detection"}
+      {{- else -}}
+        {"module": "non-PH", "type": "*"}
+      {{- end -}}
+    {{- else -}}
+      {"module": "non-PH", "type": "*"}
+    {{- end -}}
+  {{- else -}}
+    {"module": "non-PH", "type": "*"}
+  {{- end -}}
+{{- else if $isJSON -}}
+  {{/* Handle HTTP JSON requests */}}
+  {{- if .BodyJSON -}}
+    {{- $srcSystem := header .Request "x-src-system" -}}
+    {{- if eq $srcSystem "ASML-LIS" -}}
+      {"module": "PH", "type": "GetExposureInfoForLis", "operationNo": "{{index .BodyJSON "opno"}}"}
+    {{- else if and (index .BodyJSON "prodspecId") (index .BodyJSON "routeId") (index .BodyJSON "opeNo") (index .BodyJSON "lotId") (index .BodyJSON "recipeId") (index .BodyJSON "eqpId") (index .BodyJSON "chamberId") -}}
+      {"module": "EH", "type": "unLockChamber"}
+    {{- else -}}
+      {"module": "non-PH", "type": "*"}
+    {{- end -}}
+  {{- else -}}
+    {"module": "non-PH", "type": "*"}
+  {{- end -}}
+{{- else -}}
+  {"module": "non-PH", "type": "*"}
+{{- end -}}
