@@ -14,8 +14,8 @@ type Parser interface {
 	// ParseWith executes the named template with custom data along with HTTP request
 	ParseWith(templateName string, request *http.Request, data interface{}, output io.Writer) error
 
-	// UpdateTemplate loads or updates a template with the given content and hash
-	UpdateTemplate(name string, content string, hash string) error
+	// UpdateTemplate loads or updates a template with the given content
+	UpdateTemplate(name string, content string) error
 
 	// GetCacheStats returns cache statistics
 	GetCacheStats() CacheStats
@@ -33,8 +33,8 @@ type GenericParser[T any] interface {
 	// ParseWith executes the named template with custom data and returns the result as type T
 	ParseWith(templateName string, request *http.Request, data interface{}) (T, error)
 
-	// UpdateTemplate loads or updates a template with the given content and hash
-	UpdateTemplate(name string, content string, hash string) error
+	// UpdateTemplate loads or updates a template with the given content
+	UpdateTemplate(name string, content string) error
 
 	// GetCacheStats returns cache statistics
 	GetCacheStats() CacheStats

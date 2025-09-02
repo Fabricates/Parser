@@ -50,7 +50,7 @@ func main() {
     defer p.Close()
     
     // Add template dynamically
-    err = p.UpdateTemplate("greeting", "Hello {{.Request.Method}} from {{.Request.URL.Path}}!", "v1")
+    err = p.UpdateTemplate("greeting", "Hello {{.Request.Method}} from {{.Request.URL.Path}}!")
     if err != nil {
         panic(err)
     }

@@ -470,9 +470,8 @@ func BenchmarkUpdateTemplate(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		templateName := fmt.Sprintf("dynamic%d", i%10) // Rotate through 10 templates
 		content := fmt.Sprintf("Dynamic %d: {{.Request.Method}}", i)
-		hash := fmt.Sprintf("hash%d", i)
 
-		err := parser.UpdateTemplate(templateName, content, hash)
+		err := parser.UpdateTemplate(templateName, content)
 		if err != nil {
 			b.Fatalf("Failed to update template: %v", err)
 		}
@@ -495,9 +494,8 @@ func BenchmarkUpdateTemplateChangeDetection(b *testing.B) {
 	// Pre-populate some templates
 	templateName := "stable-template"
 	content := "Static template: {{.Request.Method}}"
-	hash := "stable-hash"
 
-	err = parser.UpdateTemplate(templateName, content, hash)
+	err = parser.UpdateTemplate(templateName, content)
 	if err != nil {
 		b.Fatalf("Failed to pre-populate template: %v", err)
 	}
@@ -505,7 +503,7 @@ func BenchmarkUpdateTemplateChangeDetection(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// This should trigger the change detection and skip parsing
-		err := parser.UpdateTemplate(templateName, content, hash)
+		err := parser.UpdateTemplate(templateName, content)
 		if err != nil {
 			b.Fatalf("Failed to update template: %v", err)
 		}
@@ -666,7 +664,7 @@ func TestUpdateTemplate(t *testing.T) {
 
 	// Update template using the new method
 	templateContent := "Hello {{.Request.Method}} from {{.Request.URL.Path}}!"
-	err = parser.UpdateTemplate("test-template", templateContent, "hash123")
+	err = parser.UpdateTemplate("test-template", templateContent)
 	if err != nil {
 		t.Fatalf("Failed to update template: %v", err)
 	}
@@ -691,7 +689,7 @@ func TestUpdateTemplate(t *testing.T) {
 
 	// Update the same template with new content
 	newContent := "Updated: {{.Request.Method}} {{.Request.URL.Path}}"
-	err = parser.UpdateTemplate("test-template", newContent, "hash456")
+	err = parser.UpdateTemplate("test-template", newContent)
 	if err != nil {
 		t.Fatalf("Failed to update template with new content: %v", err)
 	}
@@ -728,8 +726,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 
 	// Initial template update
 	templateContent := "Hello {{.Request.Method}} from {{.Request.URL.Path}}!"
-	hash1 := "hash123"
-	err = parser.UpdateTemplate("test-template", templateContent, hash1)
+	err = parser.UpdateTemplate("test-template", templateContent)
 	if err != nil {
 		t.Fatalf("Failed to update template: %v", err)
 	}
@@ -753,7 +750,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 	}
 
 	// Update with the same hash and same content - should not return error but should skip update
-	err = parser.UpdateTemplate("test-template", templateContent, hash1)
+	err = parser.UpdateTemplate("test-template", templateContent)
 	if err != nil {
 		t.Fatalf("Failed to update template with same hash: %v", err)
 	}
@@ -771,8 +768,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 
 	// Update with different hash - should parse and update
 	newContent := "Updated: {{.Request.Method}} {{.Request.URL.Path}}"
-	hash2 := "hash456"
-	err = parser.UpdateTemplate("test-template", newContent, hash2)
+	err = parser.UpdateTemplate("test-template", newContent)
 	if err != nil {
 		t.Fatalf("Failed to update template with new hash: %v", err)
 	}
@@ -790,7 +786,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 	}
 
 	// Update with same hash as previous update - should skip
-	err = parser.UpdateTemplate("test-template", newContent, hash2)
+	err = parser.UpdateTemplate("test-template", newContent)
 	if err != nil {
 		t.Fatalf("Failed to update template with same hash (second time): %v", err)
 	}
@@ -807,7 +803,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 	}
 
 	// Update a new template (doesn't exist) - should always update
-	err = parser.UpdateTemplate("new-template", "New template: {{.Request.Method}}", "newhash")
+	err = parser.UpdateTemplate("new-template", "New template: {{.Request.Method}}")
 	if err != nil {
 		t.Fatalf("Failed to update new template: %v", err)
 	}
@@ -825,7 +821,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 	}
 }
 
-// Test UpdateTemplate change detection for GenericParser 
+// Test UpdateTemplate change detection for GenericParser
 func TestGenericParserUpdateTemplateChangeDetection(t *testing.T) {
 	config := Config{
 		MaxCacheSize: 10,
@@ -841,8 +837,7 @@ func TestGenericParserUpdateTemplateChangeDetection(t *testing.T) {
 
 	// Initial template update
 	templateContent := "{{.Request.Method}}"
-	hash1 := "hash123"
-	err = parser.UpdateTemplate("test-template", templateContent, hash1)
+	err = parser.UpdateTemplate("test-template", templateContent)
 	if err != nil {
 		t.Fatalf("Failed to update template: %v", err)
 	}
@@ -865,7 +860,7 @@ func TestGenericParserUpdateTemplateChangeDetection(t *testing.T) {
 	}
 
 	// Update with the same hash - should skip update
-	err = parser.UpdateTemplate("test-template", templateContent, hash1)
+	err = parser.UpdateTemplate("test-template", templateContent)
 	if err != nil {
 		t.Fatalf("Failed to update template with same hash: %v", err)
 	}
@@ -882,8 +877,7 @@ func TestGenericParserUpdateTemplateChangeDetection(t *testing.T) {
 
 	// Update with different hash
 	newContent := "{{.Request.URL.Path}}"
-	hash2 := "hash456"
-	err = parser.UpdateTemplate("test-template", newContent, hash2)
+	err = parser.UpdateTemplate("test-template", newContent)
 	if err != nil {
 		t.Fatalf("Failed to update template with new hash: %v", err)
 	}
@@ -1148,7 +1142,7 @@ func TestDefaultMemoryLoader(t *testing.T) {
 
 	// Test that we can add templates using UpdateTemplate (which works with the default MemoryLoader)
 	templateContent := "Default loader test: {{.Request.Method}} {{.Request.URL.Path}}"
-	err = parser.UpdateTemplate("default-test", templateContent, "hash123")
+	err = parser.UpdateTemplate("default-test", templateContent)
 	if err != nil {
 		t.Fatalf("Failed to update template with default loader: %v", err)
 	}
@@ -1199,7 +1193,7 @@ func TestDefaultMemoryLoaderGeneric(t *testing.T) {
 
 	// Test that we can add templates using UpdateTemplate
 	templateContent := "Generic default: {{.Request.Method}}"
-	err = parser.UpdateTemplate("generic-default", templateContent, "hash456")
+	err = parser.UpdateTemplate("generic-default", templateContent)
 	if err != nil {
 		t.Fatalf("Failed to update template with default loader: %v", err)
 	}
@@ -1290,7 +1284,7 @@ func TestErrorHandling(t *testing.T) {
 	}
 
 	// Try UpdateTemplate on closed parser
-	err = parser.UpdateTemplate("test", "content", "hash")
+	err = parser.UpdateTemplate("test", "content")
 	if err == nil {
 		t.Error("Expected error when updating template on closed parser")
 	}
@@ -1718,7 +1712,7 @@ func TestParserInvalidTemplate(t *testing.T) {
 	defer parser.Close()
 
 	// Try to update with invalid template syntax
-	err = parser.UpdateTemplate("invalid", "{{invalid template syntax", "hash")
+	err = parser.UpdateTemplate("invalid", "{{invalid template syntax")
 	if err == nil {
 		t.Error("Expected error for invalid template syntax")
 	}
