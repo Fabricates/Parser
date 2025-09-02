@@ -268,6 +268,9 @@ func DefaultFuncMap() template.FuncMap {
 		"trim": func(s string) string {
 			return strings.TrimSpace(s)
 		},
+		"contains": func(s, substr string) bool {
+			return strings.Contains(s, substr)
+		},
 
 		// Utility functions
 		"default": func(defaultValue, value interface{}) interface{} {
@@ -278,6 +281,38 @@ func DefaultFuncMap() template.FuncMap {
 				return defaultValue
 			}
 			return value
+		},
+
+		// Data structure functions
+		"dict": func(pairs ...interface{}) map[string]interface{} {
+			if len(pairs)%2 != 0 {
+				return nil
+			}
+			result := make(map[string]interface{})
+			for i := 0; i < len(pairs); i += 2 {
+				key, ok := pairs[i].(string)
+				if !ok {
+					continue
+				}
+				result[key] = pairs[i+1]
+			}
+			return result
+		},
+		"merge": func(dst map[string]interface{}, src map[string]interface{}) map[string]interface{} {
+			if dst == nil {
+				dst = make(map[string]interface{})
+			}
+			for k, v := range src {
+				dst[k] = v
+			}
+			return dst
+		},
+		"toJson": func(v interface{}) string {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return "{}"
+			}
+			return string(b)
 		},
 
 		// Request-specific functions

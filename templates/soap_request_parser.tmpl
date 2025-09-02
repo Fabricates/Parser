@@ -1,0 +1,160 @@
+{{- /* Equivalent template for the JavaScript SOAP request parser */ -}}
+{{- $contentType := header .Request "Content-Type" -}}
+{{- $contentTypeLower := lower $contentType -}}
+{{- $result := dict -}}
+
+{{- /* Determine request type based on content type */ -}}
+{{- if or (contains $contentTypeLower "application/xml") (contains $contentTypeLower "text/xml") -}}
+  {{- /* XML/SOAP Request Processing */ -}}
+  {{- if .BodyXML -}}
+    {{- $envelope := index .BodyXML "Envelope" -}}
+    {{- if $envelope -}}
+      {{- $body := index $envelope "Body" -}}
+      {{- if $body -}}
+        {{- /* Check for MESRecipeTurnOff */ -}}
+        {{- if hasXMLElement $body "MESRecipeTurnOff" -}}
+          {{- $result = dict "module" "*" "type" "MESRecipeTurnOff" -}}
+        {{- /* Check for Recommend_Request */ -}}
+        {{- else if hasXMLElement $body "Recommend_Request" -}}
+          {{- $result = dict "module" "PH" "type" "REC" -}}
+          {{- $routegroup := index .BodyXML "Envelope/Body/Recommend_Request/objRequest/CONTEXT_INFO/ROUTEGROUP" -}}
+          {{- if $routegroup -}}
+            {{- $result = merge $result (dict "routegroup" $routegroup) -}}
+          {{- end -}}
+          {{- $controller := index .BodyXML "Envelope/Body/Recommend_Request/objRequest/CONTEXT_INFO/CONTROLJOBTYPE" -}}
+          {{- if $controller -}}
+            {{- $result = merge $result (dict "controller" $controller) -}}
+          {{- end -}}
+          {{- $layer := index .BodyXML "Envelope/Body/Recommend_Request/objRequest/CONTEXT_INFO/LAYER" -}}
+          {{- if $layer -}}
+            {{- $result = merge $result (dict "layer" $layer) -}}
+          {{- end -}}
+        {{- /* Check for Metrology_Request */ -}}
+        {{- else if hasXMLElement $body "Metrology_Request" -}}
+          {{- $result = dict "module" "PH" "type" "MET" -}}
+          {{- $routegroup := index .BodyXML "Envelope/Body/Metrology_Request/objRequest/CONTEXT_INFO/ROUTEGROUP" -}}
+          {{- if $routegroup -}}
+            {{- $result = merge $result (dict "routegroup" $routegroup) -}}
+          {{- end -}}
+          {{- $controller := index .BodyXML "Envelope/Body/Metrology_Request/objRequest/CONTEXT_INFO/CONTROLJOBTYPE" -}}
+          {{- if $controller -}}
+            {{- $result = merge $result (dict "controller" $controller) -}}
+          {{- end -}}
+          {{- $layer := index .BodyXML "Envelope/Body/Metrology_Request/objRequest/CONTEXT_INFO/LAYER" -}}
+          {{- if $layer -}}
+            {{- $result = merge $result (dict "layer" $layer) -}}
+          {{- end -}}
+        {{- /* Check for Used_Request */ -}}
+        {{- else if hasXMLElement $body "Used_Request" -}}
+          {{- $result = dict "module" "PH" "type" "USED" -}}
+          {{- $routegroup := index .BodyXML "Envelope/Body/Used_Request/objRequest/CONTEXT_INFO/ROUTEGROUP" -}}
+          {{- if $routegroup -}}
+            {{- $result = merge $result (dict "routegroup" $routegroup) -}}
+          {{- end -}}
+          {{- $controller := index .BodyXML "Envelope/Body/Used_Request/objRequest/CONTEXT_INFO/CONTROLJOBTYPE" -}}
+          {{- if $controller -}}
+            {{- $result = merge $result (dict "controller" $controller) -}}
+          {{- end -}}
+          {{- $layer := index .BodyXML "Envelope/Body/Used_Request/objRequest/CONTEXT_INFO/LAYER" -}}
+          {{- if $layer -}}
+            {{- $result = merge $result (dict "layer" $layer) -}}
+          {{- end -}}
+        {{- /* Check for other PH module requests */ -}}
+        {{- else if hasXMLElement $body "LotStartTime_For_Scanner" -}}
+          {{- $result = dict "module" "PH" "type" "LotStartTime_For_Scanner" -}}
+        {{- else if hasXMLElement $body "LotStartTime_For_YieldStarAndKLA" -}}
+          {{- $result = dict "module" "PH" "type" "LotStartTime_For_YieldStarAndKLA" -}}
+        {{- else if hasXMLElement $body "GetUsedExpParameters" -}}
+          {{- $result = dict "module" "PH" "type" "GetUsedExpParameters" -}}
+        {{- else if hasXMLElement $body "GetUsedLotInfoTest" -}}
+          {{- $result = dict "module" "PH" "type" "GetUsedLotInfoTest" -}}
+        {{- else if hasXMLElement $body "ResendToolOffsets" -}}
+          {{- $result = dict "module" "PH" "type" "ResendToolOffsets" -}}
+        {{- else if hasXMLElement $body "PackingLotEnd" -}}
+          {{- $result = dict "module" "PH" "type" "PackingLotEnd" -}}
+        {{- /* Check for Non-PH dispatching requests */ -}}
+        {{- else if hasXMLElement $body "R2R_Object_Metrology" -}}
+          {{- $result = dict "module" "non-PH" "type" "DISPATCHING" -}}
+        {{- else if hasXMLElement $body "R2R_Object_Recommend" -}}
+          {{- $result = dict "module" "non-PH" "type" "DISPATCHING" -}}
+        {{- else if hasXMLElement $body "R2R_Object_Used" -}}
+          {{- $result = dict "module" "non-PH" "type" "DISPATCHING" -}}
+        {{- /* Check for GetUsedLotInfo with conditional logic */ -}}
+        {{- else if hasXMLElement $body "GetUsedLotInfo" -}}
+          {{- $req := index $body "GetUsedLotInfo" -}}
+          {{- if $req -}}
+            {{- if hasXMLElement $req "result_xml" -}}
+              {{- $result = dict "module" "PH" "type" "GetUsedLotInfo" -}}
+              {{- $tool := header .Request "x-eap-tool" -}}
+              {{- if $tool -}}
+                {{- $result = merge $result (dict "tool" $tool) -}}
+              {{- end -}}
+              {{- $productGroup := header .Request "x-eap-product-group" -}}
+              {{- if $productGroup -}}
+                {{- $result = merge $result (dict "productGroup" $productGroup) -}}
+              {{- end -}}
+              {{- $operationNo := header .Request "x-eap-operation-no" -}}
+              {{- if $operationNo -}}
+                {{- $result = merge $result (dict "operationNo" $operationNo) -}}
+              {{- end -}}
+            {{- else if hasXMLElement $req "ProductID" -}}
+              {{- $result = dict "module" "PH" "type" "EAPGetUsedLotInfo" -}}
+            {{- end -}}
+          {{- end -}}
+        {{- else if hasXMLElement $body "WLC_EAP_REQUEST" -}}
+          {{- $result = dict "module" "PH" "type" "WLC_EAP_REQUEST" -}}
+        {{- /* Check for CMP module requests */ -}}
+        {{- else if hasXMLElement $body "AMAT_Platen_Control" -}}
+          {{- $result = dict "module" "CMP" "type" "AMAT_Platen_Control" -}}
+        {{- else if hasXMLElement $body "HHQK_W2W_Control" -}}
+          {{- $result = dict "module" "CMP" "type" "HHQK_W2W_Control" -}}
+        {{- else if hasXMLElement $body "Post_R2R_DC" -}}
+          {{- $result = dict "module" "CMP" "type" "Post_R2R_DC" -}}
+        {{- else if hasXMLElement $body "Inline_Detection" -}}
+          {{- $result = dict "module" "CMP" "type" "Inline_Detection" -}}
+        {{- else -}}
+          {{- $result = dict "module" "non-PH" "type" "*" -}}
+        {{- end -}}
+      {{- else -}}
+        {{- $result = dict "module" "non-PH" "type" "*" -}}
+      {{- end -}}
+    {{- else -}}
+      {{- $result = dict "module" "non-PH" "type" "*" -}}
+    {{- end -}}
+  {{- else -}}
+    {{- $result = dict "module" "non-PH" "type" "*" -}}
+  {{- end -}}
+{{- else if contains $contentTypeLower "application/json" -}}
+  {{- /* JSON/HTTP Request Processing */ -}}
+  {{- if .BodyJSON -}}
+    {{- $srcSystem := header .Request "x-src-system" -}}
+    {{- if eq $srcSystem "ASML-LIS" -}}
+      {{- $result = dict "module" "PH" "type" "GetExposureInfoForLis" -}}
+      {{- $opno := index .BodyJSON "opno" -}}
+      {{- if $opno -}}
+        {{- $result = merge $result (dict "operationNo" $opno) -}}
+      {{- end -}}
+    {{- else -}}
+      {{- /* Check for EH module unLockChamber request */ -}}
+      {{- $prodspecId := index .BodyJSON "prodspecId" -}}
+      {{- $routeId := index .BodyJSON "routeId" -}}
+      {{- $opeNo := index .BodyJSON "opeNo" -}}
+      {{- $lotId := index .BodyJSON "lotId" -}}
+      {{- $recipeId := index .BodyJSON "recipeId" -}}
+      {{- $eqpId := index .BodyJSON "eqpId" -}}
+      {{- $chamberId := index .BodyJSON "chamberId" -}}
+      {{- if and $prodspecId $routeId $opeNo $lotId $recipeId $eqpId $chamberId -}}
+        {{- $result = dict "module" "EH" "type" "unLockChamber" -}}
+      {{- else -}}
+        {{- $result = dict "module" "non-PH" "type" "*" -}}
+      {{- end -}}
+    {{- end -}}
+  {{- else -}}
+    {{- $result = dict "module" "non-PH" "type" "*" -}}
+  {{- end -}}
+{{- else -}}
+  {{- $result = dict "module" "non-PH" "type" "*" -}}
+{{- end -}}
+
+{{- /* Output the result as JSON */ -}}
+{{ toJson $result }}
