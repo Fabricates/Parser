@@ -3,9 +3,12 @@ package parser
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -193,7 +196,7 @@ func (p *templateParser) ParseWith(templateName string, request *http.Request, d
 }
 
 // UpdateTemplate implements Parser
-func (p *templateParser) UpdateTemplate(name string, content string, hash string) error {
+func (p *templateParser) UpdateTemplate(name string, content string) error {
 	p.mu.RLock()
 	if p.closed {
 		p.mu.RUnlock()
@@ -201,14 +204,27 @@ func (p *templateParser) UpdateTemplate(name string, content string, hash string
 	}
 	p.mu.RUnlock()
 
+	// Calculate MD5 hash of the content
+	hash := md5.Sum([]byte(content))
+	hashString := hex.EncodeToString(hash[:])
+
+	// Check if template exists and has the same hash
+	existingHash := p.cache.GetHash(name)
+	if existingHash != "" && existingHash == hashString {
+		// Template exists and hasn't changed, no need to update
+		return nil
+	}
+
 	// Parse the template content
 	tmpl, err := template.New(name).Funcs(p.config.FuncMap).Parse(content)
 	if err != nil {
 		return err
 	}
 
+	slog.Info("Updated template", "name", name, "hash", hashString)
+
 	// Update the cache directly with the parsed template
-	p.cache.Set(name, tmpl, hash)
+	p.cache.Set(name, tmpl, hashString)
 	return nil
 }
 

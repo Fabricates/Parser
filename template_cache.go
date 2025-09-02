@@ -13,6 +13,7 @@ type CachedTemplate struct {
 	LastModified time.Time
 	AccessTime   time.Time
 	AccessCount  int64
+	Hash         string // Hash of the template content for change detection
 }
 
 // TemplateCache provides efficient caching of compiled templates
@@ -96,6 +97,7 @@ func (c *TemplateCache) loadAndCache(name string, loader TemplateLoader) (*templ
 		LastModified: lastMod,
 		AccessTime:   time.Now(),
 		AccessCount:  1,
+		Hash:         "", // No hash available from loader
 	}
 
 	// Add to cache
@@ -180,6 +182,7 @@ func (c *TemplateCache) Set(name string, tmpl *template.Template, hash string) {
 		LastModified: time.Now(),
 		AccessTime:   time.Now(),
 		AccessCount:  1,
+		Hash:         hash,
 	}
 
 	// Add to cache
@@ -194,6 +197,17 @@ func (c *TemplateCache) Clear() {
 	c.templates = make(map[string]*CachedTemplate)
 	c.lruList = list.New()
 	c.lruIndex = make(map[string]*list.Element)
+}
+
+// GetHash returns the hash of a cached template, or empty string if not found
+func (c *TemplateCache) GetHash(name string) string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if cached, exists := c.templates[name]; exists {
+		return cached.Hash
+	}
+	return ""
 }
 
 // Stats returns cache statistics
