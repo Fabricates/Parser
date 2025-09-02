@@ -201,6 +201,13 @@ func (p *templateParser) UpdateTemplate(name string, content string, hash string
 	}
 	p.mu.RUnlock()
 
+	// Check if template exists and has the same hash
+	existingHash := p.cache.GetHash(name)
+	if existingHash != "" && existingHash == hash {
+		// Template exists and hasn't changed, no need to update
+		return nil
+	}
+
 	// Parse the template content
 	tmpl, err := template.New(name).Funcs(p.config.FuncMap).Parse(content)
 	if err != nil {
