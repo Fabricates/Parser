@@ -116,7 +116,7 @@ The main interface provides methods for template parsing and management:
 type Parser interface {
     Parse(templateName string, request *http.Request, output io.Writer) error
     ParseWith(templateName string, request *http.Request, data interface{}, output io.Writer) error
-    UpdateTemplate(name string, content string, hash string) error
+    UpdateTemplate(name string, content string) error
     GetCacheStats() CacheStats
     Close() error
 }
@@ -178,14 +178,14 @@ You can dynamically add or update templates at runtime using the `UpdateTemplate
 ```go
 // Add a new template
 templateContent := "Hello {{.Request.Method}} from {{.Request.URL.Path}}!"
-err := parser.UpdateTemplate("greeting", templateContent, "hash123")
+err := parser.UpdateTemplate("greeting", templateContent)
 if err != nil {
     log.Fatalf("Failed to update template: %v", err)
 }
 
 // Later, update the same template with new content
 newContent := "Updated: {{.Request.Method}} {{.Request.URL.Path}}"
-err = parser.UpdateTemplate("greeting", newContent, "hash456")
+err = parser.UpdateTemplate("greeting", newContent)
 if err != nil {
     log.Fatalf("Failed to update template: %v", err)
 }
@@ -194,6 +194,8 @@ if err != nil {
 var output bytes.Buffer
 err = parser.Parse("greeting", request, &output)
 ```
+
+**Note:** The `UpdateTemplate` method automatically calculates MD5 hashes of template content for change detection and caching optimization. If you call `UpdateTemplate` with the same content multiple times, the template will only be recompiled when the content actually changes.
 
 ## Template Examples
 
@@ -374,7 +376,7 @@ if err != nil {
 }
 
 // Add templates dynamically using UpdateTemplate
-err = p.UpdateTemplate("greeting", "Hello {{.Request.Method}}!", "hash123")
+err = p.UpdateTemplate("greeting", "Hello {{.Request.Method}}!")
 ```
 
 ## Performance
