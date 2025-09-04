@@ -284,6 +284,43 @@ func DefaultFuncMap() template.FuncMap {
 		"trim": func(s string) string {
 			return strings.TrimSpace(s)
 		},
+		"hasPrefix": func(s, prefix string) bool {
+			return strings.HasPrefix(s, prefix)
+		},
+		"hasSuffix": func(s, suffix string) bool {
+			return strings.HasSuffix(s, suffix)
+		},
+		"contains": func(s, substr string) bool {
+			return strings.Contains(s, substr)
+		},
+		"replace": func(s, old, new string) string {
+			return strings.ReplaceAll(s, old, new)
+		},
+		"split": func(s, sep string) []string {
+			return strings.Split(s, sep)
+		},
+		"join": func(elems []string, sep string) string {
+			return strings.Join(elems, sep)
+		},
+		"trimPrefix": func(s, prefix string) string {
+			return strings.TrimPrefix(s, prefix)
+		},
+		"trimSuffix": func(s, suffix string) string {
+			return strings.TrimSuffix(s, suffix)
+		},
+		"repeat": func(s string, count int) string {
+			return strings.Repeat(s, count)
+		},
+		"substr": func(s string, start, length int) string {
+			if start < 0 || start >= len(s) {
+				return ""
+			}
+			end := start + length
+			if end > len(s) {
+				end = len(s)
+			}
+			return s[start:end]
+		},
 
 		// Utility functions
 		"default": func(defaultValue, value interface{}) interface{} {

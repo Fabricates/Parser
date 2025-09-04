@@ -1336,6 +1336,102 @@ func TestDefaultFuncMapComplete(t *testing.T) {
 	}
 }
 
+// Test new string functions in DefaultFuncMap
+func TestDefaultFuncMapStringFunctions(t *testing.T) {
+	funcMap := DefaultFuncMap()
+
+	// Test hasPrefix function
+	hasPrefixFunc := funcMap["hasPrefix"].(func(string, string) bool)
+	if !hasPrefixFunc("hello world", "hello") {
+		t.Error("Expected 'hello world' to have prefix 'hello'")
+	}
+	if hasPrefixFunc("hello world", "world") {
+		t.Error("Expected 'hello world' not to have prefix 'world'")
+	}
+
+	// Test hasSuffix function
+	hasSuffixFunc := funcMap["hasSuffix"].(func(string, string) bool)
+	if !hasSuffixFunc("hello world", "world") {
+		t.Error("Expected 'hello world' to have suffix 'world'")
+	}
+	if hasSuffixFunc("hello world", "hello") {
+		t.Error("Expected 'hello world' not to have suffix 'hello'")
+	}
+
+	// Test contains function
+	containsFunc := funcMap["contains"].(func(string, string) bool)
+	if !containsFunc("hello world", "lo wo") {
+		t.Error("Expected 'hello world' to contain 'lo wo'")
+	}
+	if containsFunc("hello world", "xyz") {
+		t.Error("Expected 'hello world' not to contain 'xyz'")
+	}
+
+	// Test replace function
+	replaceFunc := funcMap["replace"].(func(string, string, string) string)
+	result := replaceFunc("hello world", "world", "universe")
+	if result != "hello universe" {
+		t.Errorf("Expected 'hello universe', got '%s'", result)
+	}
+
+	// Test split function
+	splitFunc := funcMap["split"].(func(string, string) []string)
+	parts := splitFunc("a,b,c", ",")
+	if len(parts) != 3 || parts[0] != "a" || parts[1] != "b" || parts[2] != "c" {
+		t.Errorf("Expected [a b c], got %v", parts)
+	}
+
+	// Test join function
+	joinFunc := funcMap["join"].(func([]string, string) string)
+	joined := joinFunc([]string{"a", "b", "c"}, "-")
+	if joined != "a-b-c" {
+		t.Errorf("Expected 'a-b-c', got '%s'", joined)
+	}
+
+	// Test trimPrefix function
+	trimPrefixFunc := funcMap["trimPrefix"].(func(string, string) string)
+	trimmed := trimPrefixFunc("hello world", "hello ")
+	if trimmed != "world" {
+		t.Errorf("Expected 'world', got '%s'", trimmed)
+	}
+
+	// Test trimSuffix function
+	trimSuffixFunc := funcMap["trimSuffix"].(func(string, string) string)
+	trimmed = trimSuffixFunc("hello world", " world")
+	if trimmed != "hello" {
+		t.Errorf("Expected 'hello', got '%s'", trimmed)
+	}
+
+	// Test repeat function
+	repeatFunc := funcMap["repeat"].(func(string, int) string)
+	repeated := repeatFunc("a", 3)
+	if repeated != "aaa" {
+		t.Errorf("Expected 'aaa', got '%s'", repeated)
+	}
+
+	// Test substr function
+	substrFunc, ok := funcMap["substr"].(func(string, int, int) string)
+	if !ok {
+		t.Fatalf("funcMap['substr'] is not of type func(string, int, int) string")
+	}
+	sub := substrFunc("hello world", 6, 5)
+	if sub != "world" {
+		t.Errorf("Expected 'world', got '%s'", sub)
+	}
+
+	// Test substr with length beyond string
+	sub = substrFunc("hello", 2, 10)
+	if sub != "llo" {
+		t.Errorf("Expected 'llo', got '%s'", sub)
+	}
+
+	// Test substr with negative start (should return empty)
+	sub = substrFunc("hello", -1, 3)
+	if sub != "" {
+		t.Errorf("Expected empty string, got '%s'", sub)
+	}
+}
+
 // Test multipart form data extraction
 func TestExtractRequestDataMultipart(t *testing.T) {
 	// Create multipart form data
