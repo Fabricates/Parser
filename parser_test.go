@@ -1410,7 +1410,10 @@ func TestDefaultFuncMapStringFunctions(t *testing.T) {
 	}
 
 	// Test substr function
-	substrFunc := funcMap["substr"].(func(string, int, int) string)
+	substrFunc, ok := funcMap["substr"].(func(string, int, int) string)
+	if !ok {
+		t.Fatalf("funcMap['substr'] is not of type func(string, int, int) string")
+	}
 	sub := substrFunc("hello world", 6, 5)
 	if sub != "world" {
 		t.Errorf("Expected 'world', got '%s'", sub)
