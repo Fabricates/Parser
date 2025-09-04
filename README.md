@@ -251,11 +251,26 @@ Role: {{.Custom.role}}
 
 The parser includes useful template functions:
 
+### String Functions
 - `upper`: Convert string to uppercase
 - `lower`: Convert string to lowercase  
 - `title`: Convert string to title case
 - `trim`: Remove leading/trailing whitespace
+- `hasPrefix`: Check if string starts with prefix
+- `hasSuffix`: Check if string ends with suffix
+- `contains`: Check if string contains substring
+- `replace`: Replace all occurrences of old substring with new
+- `split`: Split string by separator into slice
+- `join`: Join slice of strings with separator
+- `trimPrefix`: Remove prefix from start of string
+- `trimSuffix`: Remove suffix from end of string
+- `repeat`: Repeat string n times
+- `substr`: Extract substring (start, length)
+
+### Utility Functions
 - `default`: Provide default value for empty/nil values
+
+### Request Functions
 - `header`: Get request header value
 - `query`: Get query parameter value
 - `form`: Get form field value
@@ -265,6 +280,9 @@ Example usage:
 ```html
 Name: {{.Custom.name | upper | default "Anonymous"}}
 Content-Type: {{header .Request "Content-Type"}}
+URL: {{if hasPrefix .Request.URL.Path "/api"}}API Call{{end}}
+File: {{trimSuffix .Custom.filename ".txt"}}
+Tags: {{join .Custom.tags ", "}}
 ```
 
 ## File Watching
