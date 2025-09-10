@@ -59,6 +59,11 @@ func newTemplateParser(config Config) (*templateParser, error) {
 	// Create context for file watching
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Using default function map if not specified
+	if config.FuncMap == nil {
+		config.FuncMap = DefaultFuncMap()
+	}
+
 	// Create template cache
 	cache := NewTemplateCache(config.MaxCacheSize, config.FuncMap)
 
