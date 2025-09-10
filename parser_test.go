@@ -109,7 +109,7 @@ func TestExtractRequestData(t *testing.T) {
 
 	// Extract request data
 	customData := map[string]interface{}{"user": "test"}
-	data, err := ExtractRequestData(rereadable, customData)
+	data, err := rereadable.Extract(customData)
 	if err != nil {
 		t.Fatalf("Failed to extract request data: %v", err)
 	}
@@ -355,7 +355,7 @@ func BenchmarkRequestExtraction(b *testing.B) {
 			b.Fatalf("Failed to create re-readable request: %v", err)
 		}
 
-		_, err = ExtractRequestData(rereadable, nil)
+		_, err = rereadable.Extract(nil)
 		if err != nil {
 			b.Fatalf("Failed to extract request data: %v", err)
 		}
@@ -1452,7 +1452,7 @@ func TestExtractRequestDataMultipart(t *testing.T) {
 		t.Fatalf("Failed to create re-readable request: %v", err)
 	}
 
-	data, err := ExtractRequestData(rereadable, nil)
+	data, err := rereadable.Extract(nil)
 	if err != nil {
 		t.Fatalf("Failed to extract multipart request data: %v", err)
 	}
@@ -1478,7 +1478,7 @@ func TestExtractRequestDataJSON(t *testing.T) {
 		t.Fatalf("Failed to create re-readable request: %v", err)
 	}
 
-	data, err := ExtractRequestData(rereadable, nil)
+	data, err := rereadable.Extract(nil)
 	if err != nil {
 		t.Fatalf("Failed to extract JSON request data: %v", err)
 	}
@@ -1531,7 +1531,7 @@ func TestExtractRequestDataXML(t *testing.T) {
 		t.Fatalf("Failed to create re-readable request: %v", err)
 	}
 
-	data, err := ExtractRequestData(rereadable, nil)
+	data, err := rereadable.Extract(nil)
 	if err != nil {
 		t.Fatalf("Failed to extract XML request data: %v", err)
 	}
@@ -1571,7 +1571,7 @@ func TestExtractRequestDataSOAP(t *testing.T) {
 		t.Fatalf("Failed to create re-readable request: %v", err)
 	}
 
-	data, err := ExtractRequestData(rereadable, nil)
+	data, err := rereadable.Extract(nil)
 	if err != nil {
 		t.Fatalf("Failed to extract SOAP request data: %v", err)
 	}
@@ -1600,7 +1600,7 @@ func TestExtractRequestDataInvalidJSON(t *testing.T) {
 		t.Fatalf("Failed to create re-readable request: %v", err)
 	}
 
-	data, err := ExtractRequestData(rereadable, nil)
+	data, err := rereadable.Extract(nil)
 	if err != nil {
 		t.Fatalf("Failed to extract request data with invalid JSON: %v", err)
 	}
@@ -1647,7 +1647,7 @@ func TestExtractRequestDataContentTypeVariations(t *testing.T) {
 				t.Fatalf("Failed to create re-readable request: %v", err)
 			}
 
-			data, err := ExtractRequestData(rereadable, nil)
+			data, err := rereadable.Extract(nil)
 			if err != nil {
 				t.Fatalf("Failed to extract request data: %v", err)
 			}
@@ -1836,7 +1836,7 @@ func TestExtractRequestDataQueryEdgeCases(t *testing.T) {
 		t.Fatalf("Failed to create re-readable request: %v", err)
 	}
 
-	data, err := ExtractRequestData(rereadable, nil)
+	data, err := rereadable.Extract(nil)
 	if err != nil {
 		t.Fatalf("Failed to extract request data with invalid query: %v", err)
 	}
@@ -1849,7 +1849,7 @@ func TestExtractRequestDataQueryEdgeCases(t *testing.T) {
 	// Test with no query at all
 	req2, _ := http.NewRequest("GET", "http://example.com/test", nil)
 	rereadable2, _ := NewRereadableRequest(req2)
-	data2, err := ExtractRequestData(rereadable2, nil)
+	data2, err := rereadable2.Extract(nil)
 	if err != nil {
 		t.Fatalf("Failed to extract request data with no query: %v", err)
 	}
@@ -1990,7 +1990,7 @@ func TestFormParsingErrorHandling(t *testing.T) {
 	}
 
 	// This should still work even with malformed content type
-	data, err := ExtractRequestData(rereadable, nil)
+	data, err := rereadable.Extract(nil)
 	if err != nil {
 		t.Fatalf("Failed to extract request data: %v", err)
 	}

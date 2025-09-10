@@ -1,9 +1,7 @@
 package parser
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -19,8 +17,7 @@ var xmlContentTypes = []string{
 // RereadableRequest wraps an HTTP request to make it re-readable
 type RereadableRequest struct {
 	*http.Request
-	body       []byte
-	bodyReader io.ReadCloser
+	body []byte
 }
 
 // NewRereadableRequest creates a new re-readable HTTP request
@@ -30,11 +27,18 @@ func NewRereadableRequest(r *http.Request) (*RereadableRequest, error) {
 	var err error
 
 	if r.Body != nil {
-		body, err = io.ReadAll(r.Body)
-		if err != nil {
-			return nil, err
+		if rr, ok := r.Body.(Reader); ok {
+			body, err = rr.ReadAll()
+			if err != nil {
+				return nil, err
+			}
+			rr.Reset()
+		} else {
+			if r.Body, body, err = NewRepeatableReadCloser(r.Body); err != nil {
+				return nil, err
+			}
+			r.Body.Close()
 		}
-		r.Body.Close()
 	}
 
 	// Create wrapper that uses the original request but makes body re-readable
@@ -51,10 +55,8 @@ func NewRereadableRequest(r *http.Request) (*RereadableRequest, error) {
 
 // resetBody resets the body reader to the beginning
 func (r *RereadableRequest) resetBody() {
-	if len(r.body) > 0 {
-		r.bodyReader = io.NopCloser(bytes.NewReader(r.body))
-		r.Request.Body = r.bodyReader
-		r.Request.ContentLength = int64(len(r.body))
+	if r.Request.Body != nil {
+		r.Request.Body.(Reader).Reset()
 	}
 }
 
@@ -76,8 +78,8 @@ func (r *RereadableRequest) BodyBytes() []byte {
 	return result
 }
 
-// ExtractRequestData extracts structured data from the HTTP request for template use
-func ExtractRequestData(r *RereadableRequest, customData interface{}) (*RequestData, error) {
+// Extract extracts structured data from the HTTP request for template use
+func (r *RereadableRequest) Extract(customData interface{}) (*RequestData, error) {
 	// Parse form data if not already parsed
 	if r.Request.Form == nil {
 		r.Reset() // Ensure body is readable

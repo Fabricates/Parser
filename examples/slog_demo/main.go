@@ -26,7 +26,7 @@ func main() {
 	request.Header.Set("Content-Type", "application/json")
 
 	rereadableReq, _ := parser.NewRereadableRequest(request)
-	_, err := parser.ExtractRequestData(rereadableReq, nil)
+	_, err := rereadableReq.Extract(nil)
 	if err != nil {
 		slog.Error("Request processing failed", "error", err)
 	}
@@ -41,7 +41,7 @@ func main() {
 	request2.Header.Set("Content-Type", "application/xml")
 
 	rereadableReq2, _ := parser.NewRereadableRequest(request2)
-	_, err2 := parser.ExtractRequestData(rereadableReq2, nil)
+	_, err2 := rereadableReq2.Extract(nil)
 	if err2 != nil {
 		slog.Error("Request processing failed", "error", err2)
 	}
