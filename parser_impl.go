@@ -174,13 +174,13 @@ func (p *templateParser) ParseWith(templateName string, request *http.Request, d
 	p.mu.RUnlock()
 
 	// Create re-readable request
-	rereadableReq, err := NewRereadableRequest(request)
+	req, err := NewRereadableRequest(request)
 	if err != nil {
 		return err
 	}
 
 	// Extract request data
-	requestData, err := ExtractRequestData(rereadableReq, data)
+	requestData, err := req.Extract(data)
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (p *templateParser) ParseWith(templateName string, request *http.Request, d
 	err = tmpl.Execute(output, requestData)
 
 	// Reset request body for potential reuse
-	rereadableReq.Reset()
+	req.Reset()
 
 	return err
 }
