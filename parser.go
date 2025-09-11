@@ -15,7 +15,9 @@ type Parser interface {
 	ParseWith(templateName string, req *http.Request, customData interface{}, output io.Writer) (*RequestData, error)
 
 	// Extract extracts RequestData from the request without parsing any template
-	Extract(req *http.Request, customData interface{}) (*RequestData, error)
+	// If body is provided, it will be used instead of reading from the request's body stream
+	Extract(req *http.Request, body ...[]byte) (*RequestData, error)
+
 	// UpdateTemplate loads or updates a template with the given content
 	UpdateTemplate(name string, content string) error
 
@@ -36,7 +38,8 @@ type GenericParser[T any] interface {
 	ParseWith(templateName string, request *http.Request, data interface{}) (T, *RequestData, error)
 
 	// Extract extracts structured data from HTTP request without parsing templates
-	Extract(request *http.Request, customData interface{}) (*RequestData, error)
+	// If body is provided, it will be used instead of reading from the request's body stream
+	Extract(request *http.Request, body ...[]byte) (*RequestData, error)
 
 	// UpdateTemplate loads or updates a template with the given content
 	UpdateTemplate(name string, content string) error

@@ -36,15 +36,8 @@ func main() {
 	req.Header.Set("Authorization", "Bearer token123")
 	req.Header.Set("User-Agent", "MyApp/1.0")
 
-	// Custom data
-	customData := map[string]interface{}{
-		"user_id":    "12345",
-		"session_id": "abcdef",
-		"timestamp":  1694675400,
-	}
-
 	// Extract RequestData without parsing any template
-	requestData, err := p.Extract(req, customData)
+	requestData, err := p.Extract(req)
 	if err != nil {
 		log.Fatal("Failed to extract request data:", err)
 	}
@@ -88,7 +81,7 @@ func main() {
 	defer genericParser.Close()
 
 	// Extract using generic parser (same method, same result)
-	requestData2, err := genericParser.Extract(req, customData)
+	requestData2, err := genericParser.Extract(req)
 	if err != nil {
 		log.Fatal("Failed to extract request data with generic parser:", err)
 	}
