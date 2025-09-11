@@ -17,24 +17,31 @@ var xmlContentTypes = []string{
 // RereadableRequest wraps an HTTP request to make it re-readable
 type RereadableRequest struct {
 	*http.Request
-	body []byte
+	body         []byte
+	providedBody bool // true if body was provided externally, false if read from request
 }
 
 // NewRereadableRequest creates a new re-readable HTTP request
-func NewRereadableRequest(r *http.Request) (*RereadableRequest, error) {
-	// Read the entire body into memory
-	var body []byte
+// If body is provided, it will be used instead of reading from the request's body stream
+func NewRereadableRequest(r *http.Request, body ...[]byte) (*RereadableRequest, error) {
+	var requestBody []byte
 	var err error
 
-	if r.Body != nil {
+	// Use provided body if available, otherwise read from request
+	var providedBody bool
+	if len(body) > 0 && body[0] != nil {
+		requestBody = body[0]
+		providedBody = true
+	} else if r.Body != nil {
+		providedBody = false
 		if rr, ok := r.Body.(Reader); ok {
-			body, err = rr.ReadAll()
+			requestBody, err = rr.ReadAll()
 			if err != nil {
 				return nil, err
 			}
 			rr.Reset()
 		} else {
-			if r.Body, body, err = NewRepeatableReadCloser(r.Body); err != nil {
+			if r.Body, requestBody, err = NewRepeatableReadCloser(r.Body); err != nil {
 				return nil, err
 			}
 			r.Body.Close()
@@ -43,18 +50,27 @@ func NewRereadableRequest(r *http.Request) (*RereadableRequest, error) {
 
 	// Create wrapper that uses the original request but makes body re-readable
 	req := &RereadableRequest{
-		Request: r, // Use the original request, don't create a copy
-		body:    body,
+		Request:      r, // Use the original request, don't create a copy
+		body:         requestBody,
+		providedBody: providedBody,
 	}
 
-	// Reset the original request's body to be re-readable
-	req.resetBody()
+	// Reset the original request's body to be re-readable (only if body wasn't provided externally)
+	if !providedBody {
+		req.resetBody()
+	}
 
 	return req, nil
 }
 
 // resetBody resets the body reader to the beginning
 func (r *RereadableRequest) resetBody() {
+	// If body was provided externally, no need to reset the reader
+	if r.providedBody {
+		return
+	}
+
+	// Only reset if body was read from the original request
 	if r.Request.Body != nil {
 		r.Request.Body.(Reader).Reset()
 	}
@@ -79,7 +95,7 @@ func (r *RereadableRequest) BodyBytes() []byte {
 }
 
 // Extract extracts structured data from the HTTP request for template use
-func (r *RereadableRequest) Extract(customData interface{}) (*RequestData, error) {
+func (r *RereadableRequest) Extract() (*RequestData, error) {
 	// Parse form data if not already parsed
 	if r.Request.Form == nil {
 		r.Reset() // Ensure body is readable
@@ -166,6 +182,6 @@ func (r *RereadableRequest) Extract(customData interface{}) (*RequestData, error
 		Body:     r.Body(),
 		BodyJSON: bodyJSON,
 		BodyXML:  bodyXML,
-		Custom:   customData,
+		Custom:   nil, // Custom data is no longer supported in Extract method
 	}, nil
 }

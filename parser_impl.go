@@ -112,8 +112,8 @@ func (g *genericParser[T]) ParseWith(templateName string, request *http.Request,
 }
 
 // Extract extracts RequestData from the request without parsing any template
-func (g *genericParser[T]) Extract(request *http.Request, customData interface{}) (*RequestData, error) {
-	return g.templateParser.Extract(request, customData)
+func (g *genericParser[T]) Extract(request *http.Request, body ...[]byte) (*RequestData, error) {
+	return g.templateParser.Extract(request, body...)
 }
 
 // convertToType converts a string to the target type T
@@ -185,10 +185,13 @@ func (p *templateParser) ParseWith(templateName string, request *http.Request, d
 	}
 
 	// Extract request data
-	requestData, err := req.Extract(data)
+	requestData, err := req.Extract()
 	if err != nil {
 		return nil, err
 	}
+
+	// Set custom data for ParseWith
+	requestData.Custom = data
 
 	// Get template from cache
 	tmpl, err := p.cache.Get(templateName, p.config.TemplateLoader)
@@ -206,7 +209,7 @@ func (p *templateParser) ParseWith(templateName string, request *http.Request, d
 }
 
 // Extract extracts RequestData from the request without parsing any template
-func (p *templateParser) Extract(req *http.Request, customData interface{}) (*RequestData, error) {
+func (p *templateParser) Extract(req *http.Request, body ...[]byte) (*RequestData, error) {
 	p.mu.RLock()
 	if p.closed {
 		p.mu.RUnlock()
@@ -214,14 +217,14 @@ func (p *templateParser) Extract(req *http.Request, customData interface{}) (*Re
 	}
 	p.mu.RUnlock()
 
-	// Create re-readable request
-	rereadable, err := NewRereadableRequest(req)
+	// Create re-readable request with optional body
+	rereadable, err := NewRereadableRequest(req, body...)
 	if err != nil {
 		return nil, err
 	}
 
-	// Extract request data
-	requestData, err := rereadable.Extract(customData)
+	// Extract request data (no longer pass customData, it's removed from this method)
+	requestData, err := rereadable.Extract()
 	if err != nil {
 		return nil, err
 	}
