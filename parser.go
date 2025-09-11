@@ -15,7 +15,8 @@ type Parser interface {
 	ParseWith(templateName string, req *http.Request, customData interface{}, output io.Writer) (*RequestData, error)
 
 	// Extract extracts RequestData from the request without parsing any template
-	Extract(req *http.Request, customData interface{}) (*RequestData, error) // UpdateTemplate loads or updates a template with the given content
+	Extract(req *http.Request, customData interface{}) (*RequestData, error)
+	// UpdateTemplate loads or updates a template with the given content
 	UpdateTemplate(name string, content string) error
 
 	// GetCacheStats returns cache statistics
