@@ -9,11 +9,13 @@ import (
 // Parser provides high-performance template parsing for HTTP requests
 type Parser interface {
 	// Parse executes the named template with the given HTTP request data
-	Parse(templateName string, request *http.Request, output io.Writer) error
+	Parse(templateName string, request *http.Request, output io.Writer) (*RequestData, error)
 
-	// ParseWith executes the named template with custom data along with HTTP request
-	ParseWith(templateName string, request *http.Request, data interface{}, output io.Writer) error
+	// ParseWith parses a template with custom data and returns the parsed RequestData and any error
+	ParseWith(templateName string, req *http.Request, customData interface{}, output io.Writer) (*RequestData, error)
 
+	// Extract extracts RequestData from the request without parsing any template
+	Extract(req *http.Request, customData interface{}) (*RequestData, error)
 	// UpdateTemplate loads or updates a template with the given content
 	UpdateTemplate(name string, content string) error
 
@@ -28,10 +30,13 @@ type Parser interface {
 // T is the target type that the parsed template will be converted to
 type GenericParser[T any] interface {
 	// Parse executes the named template and returns the result as type T
-	Parse(templateName string, request *http.Request) (T, error)
+	Parse(templateName string, request *http.Request) (T, *RequestData, error)
 
 	// ParseWith executes the named template with custom data and returns the result as type T
-	ParseWith(templateName string, request *http.Request, data interface{}) (T, error)
+	ParseWith(templateName string, request *http.Request, data interface{}) (T, *RequestData, error)
+
+	// Extract extracts structured data from HTTP request without parsing templates
+	Extract(request *http.Request, customData interface{}) (*RequestData, error)
 
 	// UpdateTemplate loads or updates a template with the given content
 	UpdateTemplate(name string, content string) error

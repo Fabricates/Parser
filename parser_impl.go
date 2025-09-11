@@ -87,28 +87,33 @@ func newTemplateParser(config Config) (*templateParser, error) {
 }
 
 // Parse implements GenericParser - executes template and returns result as type T
-func (g *genericParser[T]) Parse(templateName string, request *http.Request) (T, error) {
+func (g *genericParser[T]) Parse(templateName string, request *http.Request) (T, *RequestData, error) {
 	return g.ParseWith(templateName, request, nil)
 }
 
 // ParseWith implements GenericParser - executes template with custom data and returns result as type T
-func (g *genericParser[T]) ParseWith(templateName string, request *http.Request, data interface{}) (T, error) {
+func (g *genericParser[T]) ParseWith(templateName string, request *http.Request, data interface{}) (T, *RequestData, error) {
 	var zero T
 
 	// Parse template to string buffer first
 	var buf bytes.Buffer
-	err := g.templateParser.ParseWith(templateName, request, data, &buf)
+	requestData, err := g.templateParser.ParseWith(templateName, request, data, &buf)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 
 	// Convert string result to target type T
 	result, err := convertToType[T](buf.String())
 	if err != nil {
-		return zero, err
+		return zero, requestData, err
 	}
 
-	return result, nil
+	return result, requestData, nil
+}
+
+// Extract extracts RequestData from the request without parsing any template
+func (g *genericParser[T]) Extract(request *http.Request, customData interface{}) (*RequestData, error) {
+	return g.templateParser.Extract(request, customData)
 }
 
 // convertToType converts a string to the target type T
@@ -160,35 +165,35 @@ func convertToType[T any](s string) (T, error) {
 }
 
 // Parse implements Parser
-func (p *templateParser) Parse(templateName string, request *http.Request, output io.Writer) error {
+func (p *templateParser) Parse(templateName string, request *http.Request, output io.Writer) (*RequestData, error) {
 	return p.ParseWith(templateName, request, nil, output)
 }
 
 // ParseWith implements Parser
-func (p *templateParser) ParseWith(templateName string, request *http.Request, data interface{}, output io.Writer) error {
+func (p *templateParser) ParseWith(templateName string, request *http.Request, data interface{}, output io.Writer) (*RequestData, error) {
 	p.mu.RLock()
 	if p.closed {
 		p.mu.RUnlock()
-		return ErrParserClosed
+		return nil, ErrParserClosed
 	}
 	p.mu.RUnlock()
 
 	// Create re-readable request
 	req, err := NewRereadableRequest(request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Extract request data
 	requestData, err := req.Extract(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Get template from cache
 	tmpl, err := p.cache.Get(templateName, p.config.TemplateLoader)
 	if err != nil {
-		return err
+		return requestData, err
 	}
 
 	// Execute template
@@ -197,7 +202,34 @@ func (p *templateParser) ParseWith(templateName string, request *http.Request, d
 	// Reset request body for potential reuse
 	req.Reset()
 
-	return err
+	return requestData, err
+}
+
+// Extract extracts RequestData from the request without parsing any template
+func (p *templateParser) Extract(req *http.Request, customData interface{}) (*RequestData, error) {
+	p.mu.RLock()
+	if p.closed {
+		p.mu.RUnlock()
+		return nil, ErrParserClosed
+	}
+	p.mu.RUnlock()
+
+	// Create re-readable request
+	rereadable, err := NewRereadableRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract request data
+	requestData, err := rereadable.Extract(customData)
+	if err != nil {
+		return nil, err
+	}
+
+	// Reset request body for potential reuse
+	rereadable.Reset()
+
+	return requestData, nil
 }
 
 // UpdateTemplate implements Parser

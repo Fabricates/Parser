@@ -47,7 +47,7 @@ User-Agent: {{index .Headers "User-Agent" 0}}
 	req1.Header.Set("User-Agent", "Parser-Example/1.0")
 
 	var output1 bytes.Buffer
-	err = p.Parse("greeting", req1, &output1)
+	_, err = p.Parse("greeting", req1, &output1)
 	if err != nil {
 		log.Fatalf("Failed to parse template: %v", err)
 	}
@@ -60,7 +60,7 @@ User-Agent: {{index .Headers "User-Agent" 0}}
 	req2.Header.Set("User-Agent", "Parser-Example/1.0")
 
 	var output2 bytes.Buffer
-	err = p.Parse("greeting", req2, &output2)
+	_, err = p.Parse("greeting", req2, &output2)
 	if err != nil {
 		log.Fatalf("Failed to parse template: %v", err)
 	}
@@ -77,7 +77,7 @@ User-Agent: {{index .Headers "User-Agent" 0}}
 	}
 
 	var output3 bytes.Buffer
-	err = p.ParseWith("greeting", req3, customData, &output3)
+	_, err = p.ParseWith("greeting", req3, customData, &output3)
 	if err != nil {
 		log.Fatalf("Failed to parse template: %v", err)
 	}
@@ -88,7 +88,7 @@ User-Agent: {{index .Headers "User-Agent" 0}}
 	req4, _ := http.NewRequest("PUT", "http://example.com/api/users/123", nil)
 
 	var output4 bytes.Buffer
-	err = p.Parse("simple", req4, &output4)
+	_, err = p.Parse("simple", req4, &output4)
 	if err != nil {
 		log.Fatalf("Failed to parse template: %v", err)
 	}
