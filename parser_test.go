@@ -232,7 +232,7 @@ func TestParserWithMemoryLoader(t *testing.T) {
 
 	// Parse template
 	var output bytes.Buffer
-	err = parser.Parse("greeting", req, &output)
+	_, err = parser.Parse("greeting", req, &output)
 	if err != nil {
 		t.Fatalf("Failed to parse template: %v", err)
 	}
@@ -271,7 +271,7 @@ func TestParserWithCustomData(t *testing.T) {
 
 	// Parse template with custom data
 	var output bytes.Buffer
-	err = parser.ParseWith("custom", req, customData, &output)
+	_, err = parser.ParseWith("custom", req, customData, &output)
 	if err != nil {
 		t.Fatalf("Failed to parse template: %v", err)
 	}
@@ -332,7 +332,7 @@ func BenchmarkParserParse(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var output bytes.Buffer
-		err := parser.Parse("bench", req, &output)
+		_, err := parser.Parse("bench", req, &output)
 		if err != nil {
 			b.Fatalf("Failed to parse: %v", err)
 		}
@@ -386,7 +386,7 @@ func BenchmarkGenericParserString(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := parser.Parse("bench", req)
+		_, _, err := parser.Parse("bench", req)
 		if err != nil {
 			b.Fatalf("Failed to parse: %v", err)
 		}
@@ -425,7 +425,7 @@ func BenchmarkGenericParserJSON(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := parser.Parse("json", req)
+		_, _, err := parser.Parse("json", req)
 		if err != nil {
 			b.Fatalf("Failed to parse JSON: %v", err)
 		}
@@ -538,7 +538,7 @@ func BenchmarkLargeRequestBody(b *testing.B) {
 		}
 
 		var output bytes.Buffer
-		err = parser.Parse("large", req, &output)
+		_, err = parser.Parse("large", req, &output)
 		if err != nil {
 			b.Fatalf("Failed to parse large body: %v", err)
 		}
@@ -571,7 +571,7 @@ func BenchmarkConcurrentParsing(b *testing.B) {
 			}
 
 			var output bytes.Buffer
-			err = parser.Parse("concurrent", req, &output)
+			_, err = parser.Parse("concurrent", req, &output)
 			if err != nil {
 				b.Fatalf("Failed to parse concurrently: %v", err)
 			}
@@ -638,7 +638,7 @@ Custom: {{.Custom.value | default "none"}}`
 		customData := map[string]interface{}{"value": "test"}
 
 		var output bytes.Buffer
-		err = parser.ParseWith("complex", req, customData, &output)
+		_, err = parser.ParseWith("complex", req, customData, &output)
 		if err != nil {
 			b.Fatalf("Failed to parse complex template: %v", err)
 		}
@@ -677,7 +677,7 @@ func TestUpdateTemplate(t *testing.T) {
 
 	// Parse template
 	var output bytes.Buffer
-	err = parser.Parse("test-template", req, &output)
+	_, err = parser.Parse("test-template", req, &output)
 	if err != nil {
 		t.Fatalf("Failed to parse template: %v", err)
 	}
@@ -696,7 +696,7 @@ func TestUpdateTemplate(t *testing.T) {
 
 	// Parse updated template
 	var output2 bytes.Buffer
-	err = parser.Parse("test-template", req, &output2)
+	_, err = parser.Parse("test-template", req, &output2)
 	if err != nil {
 		t.Fatalf("Failed to parse updated template: %v", err)
 	}
@@ -739,7 +739,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 
 	// Parse template first time
 	var output1 bytes.Buffer
-	err = parser.Parse("test-template", req, &output1)
+	_, err = parser.Parse("test-template", req, &output1)
 	if err != nil {
 		t.Fatalf("Failed to parse template: %v", err)
 	}
@@ -757,7 +757,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 
 	// Parse again to verify template still works
 	var output1a bytes.Buffer
-	err = parser.Parse("test-template", req, &output1a)
+	_, err = parser.Parse("test-template", req, &output1a)
 	if err != nil {
 		t.Fatalf("Failed to parse template after same hash update: %v", err)
 	}
@@ -775,7 +775,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 
 	// Parse updated template to verify it changed
 	var output2 bytes.Buffer
-	err = parser.Parse("test-template", req, &output2)
+	_, err = parser.Parse("test-template", req, &output2)
 	if err != nil {
 		t.Fatalf("Failed to parse updated template: %v", err)
 	}
@@ -793,7 +793,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 
 	// Parse again to verify template still has the updated content
 	var output2a bytes.Buffer
-	err = parser.Parse("test-template", req, &output2a)
+	_, err = parser.Parse("test-template", req, &output2a)
 	if err != nil {
 		t.Fatalf("Failed to parse template after same hash update (second time): %v", err)
 	}
@@ -810,7 +810,7 @@ func TestUpdateTemplateChangeDetection(t *testing.T) {
 
 	// Parse the new template to verify it works
 	var output3 bytes.Buffer
-	err = parser.Parse("new-template", req, &output3)
+	_, err = parser.Parse("new-template", req, &output3)
 	if err != nil {
 		t.Fatalf("Failed to parse new template: %v", err)
 	}
@@ -849,7 +849,7 @@ func TestGenericParserUpdateTemplateChangeDetection(t *testing.T) {
 	}
 
 	// Parse template first time
-	result1, err := parser.Parse("test-template", req)
+	result1, _, err := parser.Parse("test-template", req)
 	if err != nil {
 		t.Fatalf("Failed to parse template: %v", err)
 	}
@@ -866,7 +866,7 @@ func TestGenericParserUpdateTemplateChangeDetection(t *testing.T) {
 	}
 
 	// Parse again to verify template still works
-	result1a, err := parser.Parse("test-template", req)
+	result1a, _, err := parser.Parse("test-template", req)
 	if err != nil {
 		t.Fatalf("Failed to parse template after same hash update: %v", err)
 	}
@@ -883,7 +883,7 @@ func TestGenericParserUpdateTemplateChangeDetection(t *testing.T) {
 	}
 
 	// Parse updated template to verify it changed
-	result2, err := parser.Parse("test-template", req)
+	result2, _, err := parser.Parse("test-template", req)
 	if err != nil {
 		t.Fatalf("Failed to parse updated template: %v", err)
 	}
@@ -922,7 +922,7 @@ func TestOriginalRequestBodyAfterParse(t *testing.T) {
 
 	// Parse template (this should consume the body internally)
 	var output bytes.Buffer
-	err = parser.Parse("body-test", req, &output)
+	_, err = parser.Parse("body-test", req, &output)
 	if err != nil {
 		t.Fatalf("Failed to parse template: %v", err)
 	}
@@ -983,7 +983,7 @@ func TestMultipleParseCalls(t *testing.T) {
 
 	// Parse template first time
 	var output1 bytes.Buffer
-	err = parser.Parse("multi-test", req, &output1)
+	_, err = parser.Parse("multi-test", req, &output1)
 	if err != nil {
 		t.Fatalf("Failed to parse template first time: %v", err)
 	}
@@ -995,7 +995,7 @@ func TestMultipleParseCalls(t *testing.T) {
 
 	// Parse template second time (should work because body is reset)
 	var output2 bytes.Buffer
-	err = parser.Parse("multi-test", req, &output2)
+	_, err = parser.Parse("multi-test", req, &output2)
 	if err != nil {
 		t.Fatalf("Failed to parse template second time: %v", err)
 	}
@@ -1030,7 +1030,7 @@ func TestGenericParserString(t *testing.T) {
 	}
 
 	// Parse template
-	result, err := parser.Parse("string-test", req)
+	result, _, err := parser.Parse("string-test", req)
 	if err != nil {
 		t.Fatalf("Failed to parse template: %v", err)
 	}
@@ -1066,7 +1066,7 @@ func TestGenericParserInt(t *testing.T) {
 	}
 
 	// Parse template
-	result, err := parser.Parse("int-test", req)
+	result, _, err := parser.Parse("int-test", req)
 	if err != nil {
 		t.Fatalf("Failed to parse template: %v", err)
 	}
@@ -1108,7 +1108,7 @@ func TestGenericParserJSON(t *testing.T) {
 	}
 
 	// Parse template
-	result, err := parser.Parse("json-test", req)
+	result, _, err := parser.Parse("json-test", req)
 	if err != nil {
 		t.Fatalf("Failed to parse template: %v", err)
 	}
@@ -1155,7 +1155,7 @@ func TestDefaultMemoryLoader(t *testing.T) {
 
 	// Parse template
 	var output bytes.Buffer
-	err = parser.Parse("default-test", req, &output)
+	_, err = parser.Parse("default-test", req, &output)
 	if err != nil {
 		t.Fatalf("Failed to parse template with default loader: %v", err)
 	}
@@ -1205,7 +1205,7 @@ func TestDefaultMemoryLoaderGeneric(t *testing.T) {
 	}
 
 	// Parse template
-	result, err := parser.Parse("generic-default", req)
+	result, _, err := parser.Parse("generic-default", req)
 	if err != nil {
 		t.Fatalf("Failed to parse template with default loader: %v", err)
 	}
@@ -1278,7 +1278,7 @@ func TestErrorHandling(t *testing.T) {
 
 	// Try to use closed parser
 	var output bytes.Buffer
-	err = parser.Parse("test", req, &output)
+	_, err = parser.Parse("test", req, &output)
 	if err == nil {
 		t.Error("Expected error when using closed parser")
 	}
@@ -1720,7 +1720,7 @@ func TestGenericParserConversion(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
 
-	_, err = jsonParser.Parse("invalid-json", req)
+	_, _, err = jsonParser.Parse("invalid-json", req)
 	if err == nil {
 		t.Error("Expected error for invalid JSON conversion")
 	}
@@ -1732,7 +1732,7 @@ func TestGenericParserConversion(t *testing.T) {
 	}
 	defer intParser.Close()
 
-	result, err := intParser.Parse("valid-int", req)
+	result, _, err := intParser.Parse("valid-int", req)
 	if err != nil {
 		t.Fatalf("Failed to parse valid int: %v", err)
 	}
@@ -1741,13 +1741,13 @@ func TestGenericParserConversion(t *testing.T) {
 	}
 
 	// Test invalid int conversion
-	_, err = intParser.Parse("invalid-int", req)
+	_, _, err = intParser.Parse("invalid-int", req)
 	if err == nil {
 		t.Error("Expected error for invalid int conversion")
 	}
 
 	// Test with ParseWith
-	_, err = intParser.ParseWith("valid-int", req, nil)
+	_, _, err = intParser.ParseWith("valid-int", req, nil)
 	if err != nil {
 		t.Fatalf("Failed to parse with valid int: %v", err)
 	}
@@ -1816,7 +1816,7 @@ func TestParserInvalidTemplate(t *testing.T) {
 	// Try to parse non-existent template
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
 	var output bytes.Buffer
-	err = parser.Parse("nonexistent", req, &output)
+	_, err = parser.Parse("nonexistent", req, &output)
 	if err == nil {
 		t.Error("Expected error parsing non-existent template")
 	}
@@ -1881,7 +1881,7 @@ func TestConversionTypes(t *testing.T) {
 	}
 	defer floatParser.Close()
 
-	floatResult, err := floatParser.Parse("float-test", req)
+	floatResult, _, err := floatParser.Parse("float-test", req)
 	if err != nil {
 		t.Fatalf("Failed to parse float: %v", err)
 	}
@@ -1896,7 +1896,7 @@ func TestConversionTypes(t *testing.T) {
 	}
 	defer boolParser.Close()
 
-	boolResult, err := boolParser.Parse("bool-test", req)
+	boolResult, _, err := boolParser.Parse("bool-test", req)
 	if err != nil {
 		t.Fatalf("Failed to parse bool: %v", err)
 	}
@@ -1911,7 +1911,7 @@ func TestConversionTypes(t *testing.T) {
 	}
 	defer stringParser.Close()
 
-	stringResult, err := stringParser.Parse("string-test", req)
+	stringResult, _, err := stringParser.Parse("string-test", req)
 	if err != nil {
 		t.Fatalf("Failed to parse string: %v", err)
 	}
@@ -2041,7 +2041,7 @@ func benchmarkCacheWithSize(b *testing.B, cacheSize int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var output bytes.Buffer
-		err := parser.Parse("cache", req, &output)
+		_, err := parser.Parse("cache", req, &output)
 		if err != nil {
 			b.Fatalf("Failed to parse: %v", err)
 		}
@@ -2087,7 +2087,7 @@ func benchmarkBodySize(b *testing.B, size int) {
 		}
 
 		var output bytes.Buffer
-		err = parser.Parse("body", req, &output)
+		_, err = parser.Parse("body", req, &output)
 		if err != nil {
 			b.Fatalf("Failed to parse: %v", err)
 		}
