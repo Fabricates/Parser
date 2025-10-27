@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,10 +21,20 @@ var (
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("Usage: sparser <template_file>")
+		log.Fatal("Usage: sparser <template_file> [port]")
 	}
 
 	templatePath = os.Args[1]
+
+	// Default port
+	port := ":8081"
+	if len(os.Args) >= 3 {
+		port = os.Args[2]
+		// Add colon if not present
+		if !strings.HasPrefix(port, ":") {
+			port = ":" + port
+		}
+	}
 
 	// Initial load
 	err := loadTemplate()
@@ -34,7 +45,7 @@ func main() {
 	log.Printf("Loaded template from %s", templatePath)
 
 	// HTTP handler
-	http.HandleFunc("/parse", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		parserMutex.Lock()
 		defer parserMutex.Unlock()
 
@@ -61,8 +72,8 @@ func main() {
 	})
 
 	// Start server
-	log.Println("Starting web server on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Printf("Starting web server on %s", port)
+	log.Fatal(http.ListenAndServe(port, nil))
 }
 
 func loadTemplate() error {
